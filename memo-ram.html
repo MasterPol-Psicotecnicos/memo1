@@ -1,599 +1,987 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MEMO.RAM — Entrenamiento de memoria visual</title>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
+<title>MEMO.RAM — Entrenamiento Psicotécnico Tropa y Marinería</title>
 <link href="https://fonts.googleapis.com/css2?family=Bungee&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
-  body { margin: 0; background: #1c1917; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #1c1917;
+    --bg2: #292524;
+    --fg: #fef3c7;
+    --accent: #facc15;
+    --danger: #dc2626;
+    --success: #4ade80;
+    --muted: #78716c;
+    --border: #fef3c7;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: 'JetBrains Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+  .display { font-family: 'Bungee', sans-serif; }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 1rem; position: relative; z-index: 10; }
+  .center-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; position: relative; overflow: hidden; }
+
+  .card { border: 4px solid var(--border); background: var(--bg2); padding: 2rem; box-shadow: 8px 8px 0 0 var(--danger); position: relative; }
+  .card-lg { padding: 2rem; box-shadow: 12px 12px 0 0 var(--danger); }
+  .card.success-glow { border-color: var(--success); box-shadow: 8px 8px 0 0 var(--accent); }
+  .card.danger-glow { border-color: var(--danger); box-shadow: 8px 8px 0 0 var(--danger); }
+  @media (min-width: 768px) { .card { padding: 3rem; } }
+
+  h1 { font-size: clamp(2.5rem, 8vw, 4.5rem); line-height: 0.95; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.5rem; font-weight: bold; margin-bottom: 1.5rem; line-height: 1.2; }
+  .label { font-size: 0.7rem; letter-spacing: 0.3em; color: #f87171; margin-bottom: 0.5rem; }
+  .label-accent { color: var(--accent); font-size: 0.7rem; letter-spacing: 0.2em; margin-bottom: 0.75rem; display: block; }
+  .subtitle { font-size: 0.7rem; letter-spacing: 0.4em; color: #f87171; margin-bottom: 0.5rem; }
+  .divider { height: 4px; background: var(--fg); width: 6rem; margin: 1rem 0; }
+  .text-muted { color: #a8a29e; font-size: 0.9rem; }
+  .text-warn { color: var(--accent); }
+  .text-danger { color: var(--danger); }
+  .text-success { color: var(--success); }
+
+  .btn { display: block; width: 100%; padding: 1rem; border: none; cursor: pointer; font-family: 'Bungee', sans-serif; font-size: 1.1rem; letter-spacing: 0.15em; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: var(--bg); box-shadow: 6px 6px 0 0 var(--danger); }
+  .btn-primary:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 0 var(--danger); background: var(--fg); }
+  .btn-secondary { background: transparent; border: 2px solid var(--fg); color: var(--fg); }
+  .btn-secondary:hover { background: var(--fg); color: var(--bg); }
+  .btn-small { padding: 0.6rem; font-size: 0.8rem; }
+
+  .select-grid { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
+  .select-3 { grid-template-columns: repeat(3, 1fr); }
+  .select-btn { padding: 0.75rem 0.5rem; border: 2px solid var(--muted); background: transparent; color: var(--muted); font-family: 'JetBrains Mono', monospace; font-weight: bold; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.1em; cursor: pointer; transition: all 0.15s; }
+  .select-btn:hover { border-color: var(--fg); color: var(--fg); }
+  .select-btn.active { background: var(--danger); border-color: var(--danger); color: var(--fg); box-shadow: 4px 4px 0 0 var(--accent); }
+
+  .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.5rem; }
+  .mode-card { padding: 1rem; border: 2px solid var(--muted); cursor: pointer; transition: all 0.15s; text-align: left; background: transparent; color: var(--fg); font-family: inherit; }
+  .mode-card:hover { border-color: var(--fg); }
+  .mode-card.active { border-color: var(--accent); background: rgba(250, 204, 21, 0.05); box-shadow: 4px 4px 0 0 var(--danger); }
+  .mode-card .mode-title { font-family: 'Bungee', sans-serif; font-size: 0.95rem; margin-bottom: 0.3rem; }
+  .mode-card .mode-desc { font-size: 0.7rem; color: #a8a29e; line-height: 1.4; }
+
+  .types-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+  @media (min-width: 768px) { .types-grid { grid-template-columns: repeat(8, 1fr); } }
+  .type-icon { border: 2px solid var(--muted); padding: 0.5rem; text-align: center; transition: all 0.15s; }
+  .type-icon:hover { border-color: var(--fg); }
+  .type-icon .icon { font-size: 1.5rem; }
+  .type-icon .name { font-size: 0.6rem; color: #a8a29e; margin-top: 0.25rem; letter-spacing: 0.05em; }
+
+  .hud { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 2px solid #44403c; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+  .hud-stats { display: flex; gap: 1.5rem; }
+  .hud-stat { text-align: left; }
+  .hud-stat-label { font-size: 0.6rem; letter-spacing: 0.2em; color: #a8a29e; }
+  .hud-stat-value { font-family: 'Bungee', sans-serif; font-size: 1.25rem; }
+  .lives { display: flex; gap: 0.25rem; }
+  .life { width: 1.25rem; height: 1.25rem; border: 2px solid var(--muted); clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%); }
+  .life.active { background: var(--danger); border-color: var(--danger); }
+
+  .progress { height: 0.5rem; background: #44403c; margin-top: 1.5rem; overflow: hidden; }
+  .progress-bar { height: 100%; background: var(--accent); transition: width 1s linear; }
+  .progress-bar.urgent { background: var(--danger); }
+
+  .challenge-area { display: flex; justify-content: center; padding: 1.5rem 0; min-height: 200px; align-items: center; }
+  .grid-display { display: grid; gap: 0.6rem; }
+  .cell-empty { background: transparent; border: none; display: flex; align-items: center; justify-content: center; }
+  .vase-cell { background: #e7e5e4; border-radius: 8px; padding: 4px; display: flex; align-items: center; justify-content: center; }
+  .seq-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.4rem; max-width: 100%; }
+
+  .symbol-cell {
+    width: 56px; height: 56px;
+    background: var(--fg); border: 3px solid #0c0a09;
+    font-family: 'JetBrains Mono', monospace; font-weight: 900;
+    font-size: 1.75rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .symbol-cell.is-number { color: var(--danger); }
+  .symbol-cell.is-letter { color: #0c0a09; }
+  .symbol-cell.is-arrow { color: var(--danger); font-size: 2rem; }
+
+  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .option-btn {
+    padding: 1.5rem 0.5rem;
+    border: 4px solid var(--fg); background: var(--bg);
+    color: var(--fg);
+    font-family: 'Bungee', sans-serif; font-size: 1.5rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .option-btn:hover:not(:disabled) {
+    background: var(--accent); color: var(--bg);
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 0 var(--danger);
+  }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+  @media (min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+  .stat-box { border: 2px solid var(--muted); padding: 0.75rem; text-align: center; }
+  .stat-box-label { font-size: 0.65rem; color: #a8a29e; letter-spacing: 0.15em; margin-bottom: 0.25rem; }
+  .stat-box-value { font-family: 'Bungee', sans-serif; font-size: 1.5rem; color: var(--accent); }
+
+  .deco-square { position: absolute; opacity: 0.2; pointer-events: none; }
+  .scanlines::before { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px); pointer-events: none; z-index: 1; }
+
   @keyframes pop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
-  .animate-pop { animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
-  @keyframes pulse-strong { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-  .pulse-strong { animation: pulse-strong 1s ease-in-out infinite; }
-  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
-  .shake { animation: shake 0.4s; }
-  .scanlines::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px); pointer-events: none; z-index: 1; }
+  .pop { animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
+  @keyframes pulse-strong { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+  .pulse-strong { animation: pulse-strong 0.8s ease-in-out infinite; }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(6px); } }
+  .shake { animation: shake 0.5s; }
+  @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fade-in 0.3s ease-out; }
+
+  .exam-pip { width: 12px; height: 12px; border: 1px solid var(--muted); }
+  .exam-pip.correct { background: var(--success); border-color: var(--success); }
+  .exam-pip.wrong { background: var(--danger); border-color: var(--danger); }
+
+  .big-result { font-family: 'Bungee', sans-serif; font-size: clamp(2.5rem, 8vw, 4rem); line-height: 1; margin-bottom: 1rem; }
+  .grade { font-family: 'Bungee', sans-serif; font-size: 5rem; color: var(--accent); margin: 1rem 0; }
+
+  .row { display: flex; gap: 0.5rem; margin-top: 1rem; }
+  .row > * { flex: 1; }
 </style>
 </head>
 <body>
-<div id="root"></div>
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useRef } = React;
+<div class="scanlines"></div>
+<div id="app"></div>
+
+<script>
+const $ = (sel, ctx = document) => ctx.querySelector(sel);
+const el = (tag, props = {}, ...children) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') e.className = v;
+    else if (k === 'style') Object.assign(e.style, v);
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === 'html') e.innerHTML = v;
+    else e.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c == null || c === false) continue;
+    e.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(c) : c);
+  }
+  return e;
+};
+const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+const uniqueOptions = (correct, candidates, count = 4) => {
+  const set = new Set([correct]);
+  for (const c of candidates) { if (set.size >= count) break; if (c !== undefined && c !== null) set.add(c); }
+  let extra = 1;
+  while (set.size < count) {
+    if (typeof correct === 'number') set.add(correct + extra);
+    else set.add('?' + extra);
+    extra++;
+  }
+  return shuffle([...set]);
+};
 
 const COLORS = {
   rojo: '#e63946', azul: '#1d4ed8', verde: '#16a34a', amarillo: '#facc15',
   morado: '#9333ea', naranja: '#f97316', rosa: '#ec4899', cyan: '#06b6d4',
 };
 const COLOR_NAMES = Object.keys(COLORS);
-const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-const generatePentagonChallenge = (difficulty) => {
-  const rows = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
-  const cols = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
-  const palette = COLOR_NAMES.slice(0, difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5);
-  const grid = [];
-  for (let r = 0; r < rows; r++) {
-    const row = [];
-    for (let c = 0; c < cols; c++) row.push(pick(palette));
-    grid.push(row);
-  }
-  const questionType = pick(['total_color', 'row_color', 'col_color', 'corner']);
-  let question, answer, options;
-  if (questionType === 'total_color') {
-    const targetColor = pick(palette);
-    const count = grid.flat().filter(c => c === targetColor).length;
-    question = `¿Cuántos pentágonos ${targetColor.toUpperCase()}S había en total?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
-  } else if (questionType === 'row_color') {
-    const targetRow = randInt(0, rows - 1);
-    const targetColor = pick(palette);
-    const count = grid[targetRow].filter(c => c === targetColor).length;
-    const rowName = targetRow === 0 ? 'PRIMERA (arriba)' : targetRow === rows - 1 ? 'ÚLTIMA (abajo)' : `${targetRow + 1}ª`;
-    question = `¿Cuántos pentágonos ${targetColor.toUpperCase()}S había en la fila ${rowName}?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), Math.min(cols, count + 1), Math.min(cols, count + 2)]);
-  } else if (questionType === 'col_color') {
-    const targetCol = randInt(0, cols - 1);
-    const targetColor = pick(palette);
-    const count = grid.map(row => row[targetCol]).filter(c => c === targetColor).length;
-    const colName = targetCol === 0 ? 'PRIMERA (izquierda)' : targetCol === cols - 1 ? 'ÚLTIMA (derecha)' : `${targetCol + 1}ª`;
-    question = `¿Cuántos pentágonos ${targetColor.toUpperCase()}S había en la columna ${colName}?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), Math.min(rows, count + 1), Math.min(rows, count + 2)]);
+const DIFF_CFG = {
+  facil:   { gridS: 3, gridM: 3, palette: 3, seqLen: 5 },
+  medio:   { gridS: 4, gridM: 4, palette: 4, seqLen: 7 },
+  dificil: { gridS: 5, gridM: 5, palette: 5, seqLen: 9 },
+};
+
+function genPentagons(diff) {
+  const cfg = DIFF_CFG[diff];
+  const rows = cfg.gridS, cols = cfg.gridM;
+  const palette = COLOR_NAMES.slice(0, cfg.palette);
+  const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => pick(palette)));
+  const qType = pick(['total', 'row', 'col', 'corner']);
+  let question, answer, opts;
+  if (qType === 'total') {
+    const t = pick(palette);
+    answer = grid.flat().filter(c => c === t).length;
+    question = `¿Cuántos pentágonos ${t.toUpperCase()}S había en TOTAL?`;
+    opts = uniqueOptions(answer, [Math.max(0, answer - 1), answer + 1, answer + 2]);
+  } else if (qType === 'row') {
+    const r = randInt(0, rows - 1), t = pick(palette);
+    answer = grid[r].filter(c => c === t).length;
+    const rN = r === 0 ? 'PRIMERA (arriba)' : r === rows - 1 ? 'ÚLTIMA (abajo)' : `${r + 1}ª`;
+    question = `¿Cuántos pentágonos ${t.toUpperCase()}S había en la fila ${rN}?`;
+    opts = uniqueOptions(answer, [Math.max(0, answer - 1), Math.min(cols, answer + 1), Math.min(cols, answer + 2)]);
+  } else if (qType === 'col') {
+    const c = randInt(0, cols - 1), t = pick(palette);
+    answer = grid.map(r => r[c]).filter(x => x === t).length;
+    const cN = c === 0 ? 'PRIMERA (izquierda)' : c === cols - 1 ? 'ÚLTIMA (derecha)' : `${c + 1}ª`;
+    question = `¿Cuántos pentágonos ${t.toUpperCase()}S había en la columna ${cN}?`;
+    opts = uniqueOptions(answer, [Math.max(0, answer - 1), Math.min(rows, answer + 1), Math.min(rows, answer + 2)]);
   } else {
-    const corners = {
-      'arriba-izquierda': grid[0][0], 'arriba-derecha': grid[0][cols - 1],
-      'abajo-izquierda': grid[rows - 1][0], 'abajo-derecha': grid[rows - 1][cols - 1],
-    };
+    const corners = { 'arriba izquierda': grid[0][0], 'arriba derecha': grid[0][cols - 1], 'abajo izquierda': grid[rows - 1][0], 'abajo derecha': grid[rows - 1][cols - 1] };
     const corner = pick(Object.keys(corners));
-    question = `¿De qué color era el pentágono de la esquina ${corner.toUpperCase()}?`;
     answer = corners[corner];
-    options = shuffle([corners[corner], ...shuffle(palette.filter(c => c !== corners[corner])).slice(0, 3)]);
+    question = `¿De qué color era el pentágono de la esquina ${corner.toUpperCase()}?`;
+    opts = uniqueOptions(answer, shuffle(palette.filter(c => c !== answer)));
   }
-  options = [...new Set(options)];
-  while (options.length < 4) options.push(typeof options[0] === 'number' ? options[options.length - 1] + 1 : pick(palette));
-  return { type: 'pentagons', grid, rows, cols, question, answer, options: options.slice(0, 4) };
-};
+  return { type: 'pentagons', grid, rows, cols, question, answer, options: opts };
+}
 
-const generateVaseChallenge = (difficulty) => {
-  const rows = difficulty === 'facil' ? 2 : difficulty === 'medio' ? 3 : 4;
-  const cols = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 4;
-  const grid = [];
-  for (let r = 0; r < rows; r++) {
-    const row = [];
-    for (let c = 0; c < cols; c++) row.push({ color: pick(['blanco', 'negro']), direction: pick(['izquierda', 'derecha', 'arriba', 'invertido']) });
-    grid.push(row);
-  }
-  const questionType = pick(['count_color', 'count_direction', 'count_combo']);
-  let question, answer, options;
-  if (questionType === 'count_color') {
-    const targetColor = pick(['blanco', 'negro']);
-    const count = grid.flat().filter(v => v.color === targetColor).length;
-    question = `¿Cuántos jarrones ${targetColor.toUpperCase()}S había?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
-  } else if (questionType === 'count_direction') {
-    const targetDir = pick(['izquierda', 'derecha', 'arriba', 'invertido']);
-    const count = grid.flat().filter(v => v.direction === targetDir).length;
-    const dirText = targetDir === 'arriba' ? 'mirando hacia ARRIBA' : targetDir === 'invertido' ? 'INVERTIDOS (boca abajo)' : `mirando hacia la ${targetDir.toUpperCase()}`;
-    question = `¿Cuántos jarrones había ${dirText}?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+function genVases(diff) {
+  const [rows, cols] = diff === 'facil' ? [2, 3] : diff === 'medio' ? [3, 4] : [4, 4];
+  const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({
+    color: pick(['blanco', 'negro']),
+    direction: pick(['izquierda', 'derecha', 'arriba', 'invertido']),
+  })));
+  const qType = pick(['color', 'dir', 'combo']);
+  let question, answer, opts;
+  if (qType === 'color') {
+    const t = pick(['blanco', 'negro']);
+    answer = grid.flat().filter(v => v.color === t).length;
+    question = `¿Cuántos jarrones ${t.toUpperCase()}S había?`;
+  } else if (qType === 'dir') {
+    const t = pick(['izquierda', 'derecha', 'arriba', 'invertido']);
+    answer = grid.flat().filter(v => v.direction === t).length;
+    const dt = t === 'arriba' ? 'mirando hacia ARRIBA' : t === 'invertido' ? 'INVERTIDOS (boca abajo)' : `mirando hacia la ${t.toUpperCase()}`;
+    question = `¿Cuántos jarrones había ${dt}?`;
   } else {
-    const targetColor = pick(['blanco', 'negro']);
-    const targetDir = pick(['izquierda', 'derecha']);
-    const count = grid.flat().filter(v => v.color === targetColor && v.direction === targetDir).length;
-    question = `¿Cuántos jarrones ${targetColor.toUpperCase()}S miraban hacia la ${targetDir.toUpperCase()}?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+    const tc = pick(['blanco', 'negro']);
+    const td = pick(['izquierda', 'derecha']);
+    answer = grid.flat().filter(v => v.color === tc && v.direction === td).length;
+    question = `¿Cuántos jarrones ${tc.toUpperCase()}S miraban a la ${td.toUpperCase()}?`;
   }
-  options = [...new Set(options)];
-  while (options.length < 4) options.push(options[options.length - 1] + 1);
-  return { type: 'vases', grid, rows, cols, question, answer, options: options.slice(0, 4) };
-};
+  opts = uniqueOptions(answer, [Math.max(0, answer - 1), answer + 1, answer + 2]);
+  return { type: 'vases', grid, rows, cols, question, answer, options: opts };
+}
 
-const generateSequenceChallenge = (difficulty) => {
-  const length = difficulty === 'facil' ? 5 : difficulty === 'medio' ? 7 : 9;
+function genSequence(diff) {
+  const length = DIFF_CFG[diff].seqLen;
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  const sequence = Array.from({ length }, () => chars[randInt(0, chars.length - 1)]);
-  const questionType = pick(['position', 'count_letters', 'count_numbers', 'specific_char']);
-  let question, answer, options;
-  if (questionType === 'position') {
+  const seq = Array.from({ length }, () => chars[randInt(0, chars.length - 1)]);
+  const qType = pick(['position', 'letters', 'numbers', 'specific', 'first', 'last']);
+  let question, answer, opts;
+  if (qType === 'position') {
     const pos = randInt(0, length - 1);
-    const posText = pos === 0 ? 'PRIMERA' : pos === length - 1 ? 'ÚLTIMA' : `${pos + 1}ª`;
-    question = `¿Qué carácter estaba en la posición ${posText}?`;
-    answer = sequence[pos];
-    const others = shuffle(chars.split('').filter(c => c !== answer)).slice(0, 3);
-    options = shuffle([answer, ...others]);
-  } else if (questionType === 'count_letters') {
-    const count = sequence.filter(c => /[A-Z]/.test(c)).length;
+    answer = seq[pos];
+    question = `¿Qué carácter estaba en la posición ${pos === 0 ? 'PRIMERA' : pos === length - 1 ? 'ÚLTIMA' : (pos + 1) + 'ª'}?`;
+    opts = uniqueOptions(answer, shuffle(chars.split('').filter(c => c !== answer)));
+  } else if (qType === 'letters') {
+    answer = seq.filter(c => /[A-Z]/.test(c)).length;
     question = `¿Cuántas LETRAS había en la secuencia?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), Math.min(length, count + 1), Math.min(length, count + 2)]);
-  } else if (questionType === 'count_numbers') {
-    const count = sequence.filter(c => /[0-9]/.test(c)).length;
+    opts = uniqueOptions(answer, [Math.max(0, answer - 1), Math.min(length, answer + 1), Math.min(length, answer + 2)]);
+  } else if (qType === 'numbers') {
+    answer = seq.filter(c => /[0-9]/.test(c)).length;
     question = `¿Cuántos NÚMEROS había en la secuencia?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), Math.min(length, count + 1), Math.min(length, count + 2)]);
+    opts = uniqueOptions(answer, [Math.max(0, answer - 1), Math.min(length, answer + 1), Math.min(length, answer + 2)]);
+  } else if (qType === 'first') {
+    answer = seq[0];
+    question = `¿Cuál era el PRIMER carácter?`;
+    opts = uniqueOptions(answer, shuffle(chars.split('').filter(c => c !== answer)));
+  } else if (qType === 'last') {
+    answer = seq[length - 1];
+    question = `¿Cuál era el ÚLTIMO carácter?`;
+    opts = uniqueOptions(answer, shuffle(chars.split('').filter(c => c !== answer)));
   } else {
-    const target = pick(sequence);
-    const count = sequence.filter(c => c === target).length;
+    const target = pick(seq);
+    answer = seq.filter(c => c === target).length;
     question = `¿Cuántas veces aparecía el carácter "${target}"?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+    opts = uniqueOptions(answer, [Math.max(0, answer - 1), answer + 1, answer + 2]);
   }
-  options = [...new Set(options)];
-  while (options.length < 4) options.push(typeof options[0] === 'number' ? options[options.length - 1] + 1 : pick(chars.split('')));
-  return { type: 'sequence', sequence, question, answer, options: options.slice(0, 4) };
-};
+  return { type: 'sequence', sequence: seq, question, answer, options: opts };
+}
 
-const generateArrowChallenge = (difficulty) => {
-  const rows = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
-  const cols = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
+function genArrows(diff) {
+  const cfg = DIFF_CFG[diff];
+  const rows = cfg.gridS, cols = cfg.gridM;
   const dirs = ['↑', '↓', '←', '→', '↖', '↗', '↘', '↙'];
-  const palette = dirs.slice(0, difficulty === 'facil' ? 4 : 6);
-  const grid = [];
-  for (let r = 0; r < rows; r++) {
-    const row = [];
-    for (let c = 0; c < cols; c++) row.push(pick(palette));
-    grid.push(row);
-  }
-  const questionType = pick(['count_dir', 'count_vertical', 'count_horizontal']);
-  let question, answer, options;
-  if (questionType === 'count_dir') {
-    const target = pick(palette);
-    const count = grid.flat().filter(d => d === target).length;
-    question = `¿Cuántas flechas ${target} había en total?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
-  } else if (questionType === 'count_vertical') {
-    const count = grid.flat().filter(d => d === '↑' || d === '↓').length;
-    question = `¿Cuántas flechas VERTICALES (↑ ↓) había?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  const palette = dirs.slice(0, diff === 'facil' ? 4 : 6);
+  const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => pick(palette)));
+  const qType = pick(['dir', 'vertical', 'horizontal', 'diagonal']);
+  let question, answer, opts;
+  if (qType === 'dir') {
+    const t = pick(palette);
+    answer = grid.flat().filter(d => d === t).length;
+    question = `¿Cuántas flechas ${t} había?`;
+  } else if (qType === 'vertical') {
+    answer = grid.flat().filter(d => d === '↑' || d === '↓').length;
+    question = `¿Cuántas flechas VERTICALES (↑↓) había?`;
+  } else if (qType === 'horizontal') {
+    answer = grid.flat().filter(d => d === '←' || d === '→').length;
+    question = `¿Cuántas flechas HORIZONTALES (←→) había?`;
   } else {
-    const count = grid.flat().filter(d => d === '←' || d === '→').length;
-    question = `¿Cuántas flechas HORIZONTALES (← →) había?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+    answer = grid.flat().filter(d => ['↖', '↗', '↘', '↙'].includes(d)).length;
+    question = `¿Cuántas flechas DIAGONALES había?`;
   }
-  options = [...new Set(options)];
-  while (options.length < 4) options.push(options[options.length - 1] + 1);
-  return { type: 'arrows', grid, rows, cols, question, answer, options: options.slice(0, 4) };
-};
+  opts = uniqueOptions(answer, [Math.max(0, answer - 1), answer + 1, answer + 2]);
+  return { type: 'arrows', grid, rows, cols, question, answer, options: opts };
+}
 
-const generateEmojiChallenge = (difficulty) => {
-  const rows = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
-  const cols = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
+function genEmojis(diff) {
+  const cfg = DIFF_CFG[diff];
+  const rows = cfg.gridS, cols = cfg.gridM;
   const emojis = ['🍎', '🍌', '🍇', '🍓', '🍊', '🥝', '🍑', '🥥'];
   const names = { '🍎': 'manzanas', '🍌': 'plátanos', '🍇': 'uvas', '🍓': 'fresas', '🍊': 'naranjas', '🥝': 'kiwis', '🍑': 'melocotones', '🥥': 'cocos' };
-  const palette = emojis.slice(0, difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5);
-  const grid = [];
-  for (let r = 0; r < rows; r++) {
-    const row = [];
-    for (let c = 0; c < cols; c++) row.push(pick(palette));
-    grid.push(row);
-  }
-  const questionType = pick(['count_total', 'count_row']);
-  let question, answer, options;
-  if (questionType === 'count_total') {
-    const target = pick(palette);
-    const count = grid.flat().filter(e => e === target).length;
-    question = `¿Cuántas ${names[target].toUpperCase()} (${target}) había en total?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  const palette = emojis.slice(0, cfg.palette);
+  const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => pick(palette)));
+  const qType = pick(['total', 'row']);
+  let question, answer, opts;
+  if (qType === 'total') {
+    const t = pick(palette);
+    answer = grid.flat().filter(e => e === t).length;
+    question = `¿Cuántas ${names[t].toUpperCase()} (${t}) había en TOTAL?`;
   } else {
-    const targetRow = randInt(0, rows - 1);
-    const target = pick(palette);
-    const count = grid[targetRow].filter(e => e === target).length;
-    const rowName = targetRow === 0 ? 'PRIMERA (arriba)' : targetRow === rows - 1 ? 'ÚLTIMA (abajo)' : `${targetRow + 1}ª`;
-    question = `¿Cuántas ${names[target].toUpperCase()} (${target}) había en la fila ${rowName}?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), Math.min(cols, count + 1), Math.min(cols, count + 2)]);
+    const r = randInt(0, rows - 1), t = pick(palette);
+    answer = grid[r].filter(e => e === t).length;
+    const rN = r === 0 ? 'PRIMERA (arriba)' : r === rows - 1 ? 'ÚLTIMA (abajo)' : `${r + 1}ª`;
+    question = `¿Cuántas ${names[t].toUpperCase()} (${t}) había en la fila ${rN}?`;
   }
-  options = [...new Set(options)];
-  while (options.length < 4) options.push(options[options.length - 1] + 1);
-  return { type: 'emojis', grid, rows, cols, question, answer, options: options.slice(0, 4) };
-};
+  opts = uniqueOptions(answer, [Math.max(0, answer - 1), answer + 1, answer + 2]);
+  return { type: 'emojis', grid, rows, cols, question, answer, options: opts };
+}
 
-const generateDotsChallenge = (difficulty) => {
-  const rows = difficulty === 'facil' ? 2 : difficulty === 'medio' ? 3 : 3;
-  const cols = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 3 : 4;
-  const grid = [];
-  for (let r = 0; r < rows; r++) {
-    const row = [];
-    for (let c = 0; c < cols; c++) row.push(randInt(1, 6));
-    grid.push(row);
-  }
-  const questionType = pick(['sum_total', 'sum_row', 'count_value']);
-  let question, answer, options;
-  if (questionType === 'sum_total') {
-    const sum = grid.flat().reduce((a, b) => a + b, 0);
+function genDots(diff) {
+  const [rows, cols] = diff === 'facil' ? [2, 3] : diff === 'medio' ? [3, 3] : [3, 4];
+  const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => randInt(1, 6)));
+  const qType = pick(['sum_total', 'sum_row', 'count_value', 'sum_col']);
+  let question, answer, opts;
+  if (qType === 'sum_total') {
+    answer = grid.flat().reduce((a, b) => a + b, 0);
     question = `¿Cuál era la SUMA TOTAL de todos los puntos?`;
-    answer = sum;
-    options = shuffle([sum, sum - 2, sum + 1, sum + 3]);
-  } else if (questionType === 'sum_row') {
-    const targetRow = randInt(0, rows - 1);
-    const sum = grid[targetRow].reduce((a, b) => a + b, 0);
-    const rowName = targetRow === 0 ? 'PRIMERA' : targetRow === rows - 1 ? 'ÚLTIMA' : `${targetRow + 1}ª`;
-    question = `¿Cuál era la suma de los puntos en la fila ${rowName}?`;
-    answer = sum;
-    options = shuffle([sum, sum - 1, sum + 1, sum + 2]);
+    opts = uniqueOptions(answer, [answer - 2, answer + 1, answer + 3]);
+  } else if (qType === 'sum_row') {
+    const r = randInt(0, rows - 1);
+    answer = grid[r].reduce((a, b) => a + b, 0);
+    const rN = r === 0 ? 'PRIMERA' : r === rows - 1 ? 'ÚLTIMA' : `${r + 1}ª`;
+    question = `¿Cuál era la suma de la fila ${rN}?`;
+    opts = uniqueOptions(answer, [answer - 1, answer + 1, answer + 2]);
+  } else if (qType === 'sum_col') {
+    const c = randInt(0, cols - 1);
+    answer = grid.map(r => r[c]).reduce((a, b) => a + b, 0);
+    const cN = c === 0 ? 'PRIMERA' : c === cols - 1 ? 'ÚLTIMA' : `${c + 1}ª`;
+    question = `¿Cuál era la suma de la columna ${cN}?`;
+    opts = uniqueOptions(answer, [answer - 1, answer + 1, answer + 2]);
   } else {
-    const target = randInt(1, 6);
-    const count = grid.flat().filter(n => n === target).length;
-    question = `¿Cuántos dados mostraban exactamente ${target} punto${target > 1 ? 's' : ''}?`;
-    answer = count;
-    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+    const t = randInt(1, 6);
+    answer = grid.flat().filter(n => n === t).length;
+    question = `¿Cuántos dados mostraban ${t} punto${t > 1 ? 's' : ''}?`;
+    opts = uniqueOptions(answer, [Math.max(0, answer - 1), answer + 1, answer + 2]);
   }
-  options = [...new Set(options)];
-  while (options.length < 4) options.push(options[options.length - 1] + 1);
-  return { type: 'dots', grid, rows, cols, question, answer, options: options.slice(0, 4) };
-};
+  return { type: 'dots', grid, rows, cols, question, answer, options: opts };
+}
 
-const CHALLENGE_TYPES = [
-  { id: 'pentagons', name: 'Pentágonos', icon: '⬟', gen: generatePentagonChallenge },
-  { id: 'vases', name: 'Jarrones', icon: '⚱', gen: generateVaseChallenge },
-  { id: 'sequence', name: 'Secuencia', icon: '🅰', gen: generateSequenceChallenge },
-  { id: 'arrows', name: 'Flechas', icon: '➤', gen: generateArrowChallenge },
-  { id: 'emojis', name: 'Frutas', icon: '🍎', gen: generateEmojiChallenge },
-  { id: 'dots', name: 'Dados', icon: '⚀', gen: generateDotsChallenge },
+function genPositions(diff) {
+  const cfg = DIFF_CFG[diff];
+  const rows = cfg.gridS, cols = cfg.gridM;
+  const symbols = ['★', '●', '■', '▲', '♦', '♣', '♠', '♥'];
+  const palette = symbols.slice(0, diff === 'facil' ? 3 : diff === 'medio' ? 4 : 5);
+  const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => pick(palette)));
+  const qType = pick(['what_at', 'count_total']);
+  let question, answer, opts;
+  if (qType === 'what_at') {
+    const r = randInt(0, rows - 1), c = randInt(0, cols - 1);
+    answer = grid[r][c];
+    const rN = r === 0 ? 'PRIMERA' : r === rows - 1 ? 'ÚLTIMA' : `${r + 1}ª`;
+    const cN = c === 0 ? 'PRIMERA' : c === cols - 1 ? 'ÚLTIMA' : `${c + 1}ª`;
+    question = `¿Qué símbolo había en la fila ${rN}, columna ${cN}?`;
+    opts = uniqueOptions(answer, shuffle(palette.filter(s => s !== answer)));
+  } else {
+    const t = pick(palette);
+    answer = grid.flat().filter(s => s === t).length;
+    question = `¿Cuántos símbolos ${t} había en total?`;
+    opts = uniqueOptions(answer, [Math.max(0, answer - 1), answer + 1, answer + 2]);
+  }
+  return { type: 'positions', grid, rows, cols, question, answer, options: opts };
+}
+
+function genWords(diff) {
+  const length = diff === 'facil' ? 5 : diff === 'medio' ? 7 : 9;
+  const pool = ['MESA', 'PERRO', 'CIELO', 'AGUA', 'FUEGO', 'CASA', 'LIBRO', 'COCHE', 'RÍO', 'MAR', 'SOL', 'LUNA', 'PAN', 'LUZ', 'CALLE', 'PUERTA', 'NIÑO', 'FLOR', 'MONTE', 'CAMPO', 'BARCO', 'AVIÓN', 'TREN', 'PLATO', 'VASO', 'SILLA', 'PAPEL', 'TIERRA', 'NUBE', 'PIEDRA'];
+  const words = shuffle(pool).slice(0, length);
+  const qType = pick(['position', 'present', 'absent']);
+  let question, answer, opts;
+  if (qType === 'position') {
+    const pos = randInt(0, length - 1);
+    answer = words[pos];
+    question = `¿Qué palabra estaba en la posición ${pos === 0 ? 'PRIMERA' : pos === length - 1 ? 'ÚLTIMA' : (pos + 1) + 'ª'}?`;
+    const others = shuffle(pool.filter(w => !words.includes(w))).slice(0, 3);
+    opts = shuffle([answer, ...others]);
+  } else if (qType === 'present') {
+    answer = pick(words);
+    question = `¿CUÁL de estas palabras SÍ aparecía?`;
+    const others = shuffle(pool.filter(w => !words.includes(w))).slice(0, 3);
+    opts = shuffle([answer, ...others]);
+  } else {
+    answer = pick(pool.filter(w => !words.includes(w)));
+    question = `¿CUÁL de estas palabras NO aparecía?`;
+    const others = shuffle(words).slice(0, 3);
+    opts = shuffle([answer, ...others]);
+  }
+  return { type: 'words', words, question, answer, options: opts };
+}
+
+const CHALLENGES = [
+  { id: 'pentagons', name: 'Pentágonos', icon: '⬟', gen: genPentagons },
+  { id: 'vases', name: 'Jarrones', icon: '⚱', gen: genVases },
+  { id: 'sequence', name: 'Secuencia', icon: '🅰', gen: genSequence },
+  { id: 'arrows', name: 'Flechas', icon: '➤', gen: genArrows },
+  { id: 'emojis', name: 'Frutas', icon: '🍎', gen: genEmojis },
+  { id: 'dots', name: 'Dados', icon: '⚀', gen: genDots },
+  { id: 'positions', name: 'Símbolos', icon: '★', gen: genPositions },
+  { id: 'words', name: 'Palabras', icon: '📝', gen: genWords },
 ];
 
-const Pentagon = ({ color, size = 56 }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100">
-    <polygon points="50,5 95,38 78,92 22,92 5,38" fill={COLORS[color]} stroke="#0a0a0a" strokeWidth="3" strokeLinejoin="round" />
-  </svg>
-);
-
-const Vase = ({ color, direction, size = 56 }) => {
+function renderPentagon(color, size = 56) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('width', size); svg.setAttribute('height', size); svg.setAttribute('viewBox', '0 0 100 100');
+  const p = document.createElementNS(ns, 'polygon');
+  p.setAttribute('points', '50,5 95,38 78,92 22,92 5,38');
+  p.setAttribute('fill', COLORS[color]);
+  p.setAttribute('stroke', '#0a0a0a'); p.setAttribute('stroke-width', '3'); p.setAttribute('stroke-linejoin', 'round');
+  svg.appendChild(p);
+  return svg;
+}
+function renderVase(color, direction, size = 50) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('width', size); svg.setAttribute('height', size); svg.setAttribute('viewBox', '0 0 100 100');
+  const rot = direction === 'arriba' ? 0 : direction === 'invertido' ? 180 : direction === 'izquierda' ? -25 : 25;
+  svg.style.transform = `rotate(${rot}deg)`;
   const fill = color === 'blanco' ? '#f5f5f0' : '#1a1a1a';
   const stroke = color === 'blanco' ? '#1a1a1a' : '#f5f5f0';
-  const rotation = direction === 'arriba' ? 0 : direction === 'invertido' ? 180 : direction === 'izquierda' ? -15 : 15;
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ transform: `rotate(${rotation}deg)` }}>
-      <path d="M 30 15 L 70 15 L 68 25 L 75 35 Q 85 50 80 70 Q 75 88 50 90 Q 25 88 20 70 Q 15 50 25 35 L 32 25 Z" fill={fill} stroke={stroke} strokeWidth="3" strokeLinejoin="round" />
-      <ellipse cx="50" cy="18" rx="20" ry="3" fill={stroke} opacity="0.4" />
-    </svg>
-  );
-};
-
-const Die = ({ value, size = 56 }) => {
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', 'M 30 15 L 70 15 L 68 25 L 75 35 Q 85 50 80 70 Q 75 88 50 90 Q 25 88 20 70 Q 15 50 25 35 L 32 25 Z');
+  path.setAttribute('fill', fill); path.setAttribute('stroke', stroke); path.setAttribute('stroke-width', '3'); path.setAttribute('stroke-linejoin', 'round');
+  svg.appendChild(path);
+  const e2 = document.createElementNS(ns, 'ellipse');
+  e2.setAttribute('cx', '50'); e2.setAttribute('cy', '18'); e2.setAttribute('rx', '20'); e2.setAttribute('ry', '3'); e2.setAttribute('fill', stroke); e2.setAttribute('opacity', '0.4');
+  svg.appendChild(e2);
+  return svg;
+}
+function renderDie(value, size = 56) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('width', size); svg.setAttribute('height', size); svg.setAttribute('viewBox', '0 0 100 100');
   const positions = {
     1: [[50, 50]], 2: [[28, 28], [72, 72]], 3: [[28, 28], [50, 50], [72, 72]],
     4: [[28, 28], [72, 28], [28, 72], [72, 72]], 5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
     6: [[28, 25], [72, 25], [28, 50], [72, 50], [28, 75], [72, 75]],
   };
-  return (
-    <svg width={size} height={size} viewBox="0 0 100 100">
-      <rect x="5" y="5" width="90" height="90" rx="15" fill="#fdfaf2" stroke="#0a0a0a" strokeWidth="3" />
-      {positions[value].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="8" fill="#0a0a0a" />)}
-    </svg>
-  );
-};
-
-const PHASES = { MENU: 'menu', MEMORIZE: 'memorize', QUESTION: 'question', RESULT: 'result', GAMEOVER: 'gameover' };
-
-function MemoryGame() {
-  const [phase, setPhase] = useState(PHASES.MENU);
-  const [difficulty, setDifficulty] = useState('medio');
-  const [challenge, setChallenge] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
-  const [score, setScore] = useState(0);
-  const [round, setRound] = useState(0);
-  const [streak, setStreak] = useState(0);
-  const [lives, setLives] = useState(3);
-  const [lastCorrect, setLastCorrect] = useState(null);
-  const timerRef = useRef(null);
-
-  const memorizeTime = difficulty === 'facil' ? 7 : difficulty === 'medio' ? 5 : 4;
-
-  const newChallenge = () => {
-    const type = pick(CHALLENGE_TYPES);
-    const c = type.gen(difficulty);
-    setChallenge(c);
-    setSelectedAnswer(null);
-    setTimeLeft(memorizeTime);
-    setPhase(PHASES.MEMORIZE);
-  };
-
-  useEffect(() => {
-    if (phase !== PHASES.MEMORIZE) return;
-    if (timeLeft <= 0) { setPhase(PHASES.QUESTION); return; }
-    timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    return () => clearTimeout(timerRef.current);
-  }, [phase, timeLeft]);
-
-  const startGame = () => { setScore(0); setRound(0); setStreak(0); setLives(3); newChallenge(); };
-
-  const handleAnswer = (option) => {
-    if (selectedAnswer !== null) return;
-    setSelectedAnswer(option);
-    const correct = option === challenge.answer;
-    setLastCorrect(correct);
-    if (correct) {
-      const bonus = streak * 5;
-      const points = 10 + bonus + (difficulty === 'dificil' ? 10 : difficulty === 'medio' ? 5 : 0);
-      setScore(s => s + points);
-      setStreak(s => s + 1);
-    } else {
-      setStreak(0);
-      setLives(l => l - 1);
-    }
-    setRound(r => r + 1);
-    setTimeout(() => {
-      if (!correct && lives - 1 <= 0) setPhase(PHASES.GAMEOVER);
-      else setPhase(PHASES.RESULT);
-    }, 1500);
-  };
-
-  const renderGrid = () => {
-    if (!challenge) return null;
-    if (challenge.type === 'pentagons') {
-      return (
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${challenge.cols}, minmax(0, 1fr))` }}>
-          {challenge.grid.flat().map((color, i) => (
-            <div key={i} className="flex items-center justify-center animate-pop" style={{ animationDelay: `${i * 30}ms` }}>
-              <Pentagon color={color} />
-            </div>
-          ))}
-        </div>
-      );
-    }
-    if (challenge.type === 'vases') {
-      return (
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${challenge.cols}, minmax(0, 1fr))` }}>
-          {challenge.grid.flat().map((v, i) => (
-            <div key={i} className="flex items-center justify-center animate-pop bg-stone-200 rounded-lg p-1" style={{ animationDelay: `${i * 30}ms` }}>
-              <Vase color={v.color} direction={v.direction} />
-            </div>
-          ))}
-        </div>
-      );
-    }
-    if (challenge.type === 'sequence') {
-      return (
-        <div className="flex gap-2 flex-wrap justify-center">
-          {challenge.sequence.map((ch, i) => (
-            <div key={i} className="w-14 h-14 md:w-16 md:h-16 bg-amber-50 border-4 border-stone-900 flex items-center justify-center font-black text-3xl md:text-4xl animate-pop"
-              style={{ animationDelay: `${i * 50}ms`, fontFamily: 'JetBrains Mono, monospace', color: /[0-9]/.test(ch) ? '#dc2626' : '#0c0a09' }}>
-              {ch}
-            </div>
-          ))}
-        </div>
-      );
-    }
-    if (challenge.type === 'arrows') {
-      return (
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${challenge.cols}, minmax(0, 1fr))` }}>
-          {challenge.grid.flat().map((d, i) => (
-            <div key={i} className="w-14 h-14 md:w-16 md:h-16 bg-amber-50 border-4 border-stone-900 flex items-center justify-center text-4xl md:text-5xl font-black animate-pop"
-              style={{ animationDelay: `${i * 30}ms`, color: '#dc2626' }}>
-              {d}
-            </div>
-          ))}
-        </div>
-      );
-    }
-    if (challenge.type === 'emojis') {
-      return (
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${challenge.cols}, minmax(0, 1fr))` }}>
-          {challenge.grid.flat().map((e, i) => (
-            <div key={i} className="w-14 h-14 md:w-16 md:h-16 bg-amber-50 border-4 border-stone-900 flex items-center justify-center text-3xl md:text-4xl animate-pop"
-              style={{ animationDelay: `${i * 30}ms` }}>
-              {e}
-            </div>
-          ))}
-        </div>
-      );
-    }
-    if (challenge.type === 'dots') {
-      return (
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${challenge.cols}, minmax(0, 1fr))` }}>
-          {challenge.grid.flat().map((v, i) => (
-            <div key={i} className="flex items-center justify-center animate-pop" style={{ animationDelay: `${i * 30}ms` }}>
-              <Die value={v} />
-            </div>
-          ))}
-        </div>
-      );
-    }
-  };
-
-  if (phase === PHASES.MENU) {
-    return (
-      <div className="min-h-screen bg-stone-900 text-amber-50 flex items-center justify-center p-6 relative overflow-hidden" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-        <div className="absolute inset-0 scanlines" />
-        <div className="absolute top-10 left-10 w-32 h-32 border-4 border-red-500 -rotate-12 opacity-30" />
-        <div className="absolute bottom-10 right-10 w-24 h-24 bg-amber-400 rotate-12 opacity-20" />
-        <div className="absolute top-1/3 right-20 text-amber-50 opacity-10 text-9xl">⬟</div>
-        <div className="relative z-10 max-w-2xl w-full">
-          <div className="border-4 border-amber-50 bg-stone-800 p-8 md:p-12" style={{ boxShadow: '12px 12px 0 0 #dc2626' }}>
-            <div className="text-xs tracking-[0.4em] text-red-400 mb-2">NEURAL_TRAINING_v1.0</div>
-            <h1 className="text-5xl md:text-7xl font-black mb-2 leading-none" style={{ fontFamily: 'Bungee, sans-serif', letterSpacing: '-0.02em' }}>
-              MEMO<span className="text-red-500">.</span>RAM
-            </h1>
-            <div className="h-1 bg-amber-50 w-24 my-4" />
-            <p className="text-stone-300 mb-8 text-sm md:text-base">
-              Memoriza el patrón. Responde la pregunta.<br />
-              Cada acierto: +puntos. Cada fallo: -1 vida.
-            </p>
-            <div className="mb-6">
-              <div className="text-xs tracking-widest text-amber-400 mb-3">[ SELECCIONA DIFICULTAD ]</div>
-              <div className="grid grid-cols-3 gap-2">
-                {['facil', 'medio', 'dificil'].map(d => (
-                  <button key={d} onClick={() => setDifficulty(d)}
-                    className={`py-3 px-2 border-2 font-bold uppercase text-sm tracking-wider transition-all ${
-                      difficulty === d ? 'bg-red-500 border-red-500 text-amber-50' : 'border-stone-500 text-stone-400 hover:border-amber-50 hover:text-amber-50'
-                    }`}
-                    style={difficulty === d ? { boxShadow: '4px 4px 0 0 #facc15' } : {}}>
-                    {d}
-                  </button>
-                ))}
-              </div>
-              <div className="text-xs text-stone-400 mt-2">Tiempo de memorización: {memorizeTime}s</div>
-            </div>
-            <div className="mb-8">
-              <div className="text-xs tracking-widest text-amber-400 mb-3">[ TIPOS DE RETO ]</div>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                {CHALLENGE_TYPES.map(t => (
-                  <div key={t.id} className="border-2 border-stone-600 p-2 text-center hover:border-amber-50 transition-colors">
-                    <div className="text-2xl">{t.icon}</div>
-                    <div className="text-[10px] text-stone-400 mt-1">{t.name}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <button onClick={startGame}
-              className="w-full py-4 bg-amber-400 text-stone-900 font-black text-xl tracking-widest hover:bg-amber-50 transition-all"
-              style={{ fontFamily: 'Bungee, sans-serif', boxShadow: '6px 6px 0 0 #dc2626' }}>
-              ▶ INICIAR
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (phase === PHASES.GAMEOVER) {
-    return (
-      <div className="min-h-screen bg-stone-900 text-amber-50 flex items-center justify-center p-6" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-        <div className="border-4 border-red-500 bg-stone-800 p-8 md:p-12 max-w-md w-full text-center" style={{ boxShadow: '12px 12px 0 0 #facc15' }}>
-          <div className="text-xs tracking-[0.4em] text-red-400 mb-2">SYSTEM_HALT</div>
-          <h1 className="text-5xl md:text-6xl font-black mb-4" style={{ fontFamily: 'Bungee, sans-serif' }}>GAME<br />OVER</h1>
-          <div className="h-1 bg-red-500 w-24 mx-auto my-4" />
-          <div className="text-stone-400 text-sm">PUNTUACIÓN FINAL</div>
-          <div className="text-6xl font-black text-amber-400 my-2" style={{ fontFamily: 'Bungee, sans-serif' }}>{score}</div>
-          <div className="text-stone-400 text-sm mb-6">{round} rondas completadas</div>
-          <button onClick={() => setPhase(PHASES.MENU)}
-            className="w-full py-3 bg-amber-400 text-stone-900 font-black tracking-widest hover:bg-amber-50 transition-colors"
-            style={{ fontFamily: 'Bungee, sans-serif', boxShadow: '4px 4px 0 0 #dc2626' }}>
-            ▶ REINTENTAR
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-stone-900 text-amber-50 p-4 md:p-6 relative overflow-hidden" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
-      <div className="absolute inset-0 scanlines" />
-      <div className="max-w-3xl mx-auto relative z-10">
-        <div className="flex justify-between items-center mb-4 border-b-2 border-stone-700 pb-3">
-          <div className="flex gap-4 md:gap-6 text-xs md:text-sm">
-            <div>
-              <div className="text-stone-400 text-[10px] tracking-widest">SCORE</div>
-              <div className="text-amber-400 font-black text-lg md:text-xl" style={{ fontFamily: 'Bungee, sans-serif' }}>{score}</div>
-            </div>
-            <div>
-              <div className="text-stone-400 text-[10px] tracking-widest">RONDA</div>
-              <div className="font-black text-lg md:text-xl" style={{ fontFamily: 'Bungee, sans-serif' }}>{round + 1}</div>
-            </div>
-            <div>
-              <div className="text-stone-400 text-[10px] tracking-widest">RACHA</div>
-              <div className="text-red-500 font-black text-lg md:text-xl" style={{ fontFamily: 'Bungee, sans-serif' }}>×{streak}</div>
-            </div>
-          </div>
-          <div className="flex gap-1">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className={`w-5 h-5 md:w-6 md:h-6 border-2 ${i < lives ? 'bg-red-500 border-red-500' : 'border-stone-600'}`}
-                style={{ clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)' }} />
-            ))}
-          </div>
-        </div>
-
-        {phase === PHASES.MEMORIZE && (
-          <div className="border-4 border-amber-50 bg-stone-800 p-4 md:p-8" style={{ boxShadow: '8px 8px 0 0 #dc2626' }}>
-            <div className="flex justify-between items-center mb-6">
-              <div className="text-xs tracking-[0.3em] text-amber-400">[ MEMORIZA ]</div>
-              <div className="flex items-center gap-2">
-                <div className={`text-3xl md:text-4xl font-black ${timeLeft <= 2 ? 'text-red-500 pulse-strong' : 'text-amber-50'}`} style={{ fontFamily: 'Bungee, sans-serif' }}>{timeLeft}</div>
-                <div className="text-stone-400 text-xs">seg</div>
-              </div>
-            </div>
-            <div className="flex justify-center py-6">{renderGrid()}</div>
-            <div className="mt-6 h-2 bg-stone-700">
-              <div className="h-full bg-amber-400 transition-all duration-1000 ease-linear" style={{ width: `${(timeLeft / memorizeTime) * 100}%` }} />
-            </div>
-          </div>
-        )}
-
-        {phase === PHASES.QUESTION && (
-          <div className="border-4 border-amber-50 bg-stone-800 p-4 md:p-8 animate-pop" style={{ boxShadow: '8px 8px 0 0 #dc2626' }}>
-            <div className="text-xs tracking-[0.3em] text-red-400 mb-2">[ PREGUNTA ]</div>
-            <h2 className="text-xl md:text-2xl font-bold mb-6 leading-tight">{challenge.question}</h2>
-            <div className="grid grid-cols-2 gap-3 md:gap-4">
-              {challenge.options.map((opt, i) => (
-                <button key={i} onClick={() => handleAnswer(opt)}
-                  className="py-5 md:py-6 px-4 border-4 border-amber-50 bg-stone-900 hover:bg-amber-400 hover:text-stone-900 font-black text-2xl md:text-3xl transition-all hover:-translate-y-1"
-                  style={{ fontFamily: 'Bungee, sans-serif' }}>
-                  {typeof opt === 'string' && opt.length > 1 ? opt.toUpperCase() : opt}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {phase === PHASES.RESULT && (
-          <div className={`border-4 ${lastCorrect ? 'border-green-400' : 'border-red-500 shake'} bg-stone-800 p-4 md:p-8 animate-pop`}
-            style={{ boxShadow: `8px 8px 0 0 ${lastCorrect ? '#facc15' : '#dc2626'}` }}>
-            <div className={`text-xs tracking-[0.3em] mb-2 ${lastCorrect ? 'text-green-400' : 'text-red-400'}`}>
-              [ {lastCorrect ? 'CORRECTO' : 'INCORRECTO'} ]
-            </div>
-            <div className="text-4xl md:text-6xl font-black mb-4" style={{ fontFamily: 'Bungee, sans-serif' }}>
-              {lastCorrect ? '✓ ¡BIEN!' : '✗ FALLO'}
-            </div>
-            {!lastCorrect && (
-              <div className="text-stone-300 mb-4">
-                La respuesta correcta era: <span className="text-amber-400 font-bold">{challenge.answer}</span>
-              </div>
-            )}
-            {lastCorrect && streak > 1 && (
-              <div className="text-amber-400 mb-4">¡Racha ×{streak}! Bonus +{(streak - 1) * 5}</div>
-            )}
-            <button onClick={newChallenge}
-              className="w-full py-3 bg-amber-400 text-stone-900 font-black tracking-widest hover:bg-amber-50 transition-colors"
-              style={{ fontFamily: 'Bungee, sans-serif', boxShadow: '4px 4px 0 0 #dc2626' }}>
-              ▶ SIGUIENTE
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  const r = document.createElementNS(ns, 'rect');
+  r.setAttribute('x', '5'); r.setAttribute('y', '5'); r.setAttribute('width', '90'); r.setAttribute('height', '90'); r.setAttribute('rx', '15');
+  r.setAttribute('fill', '#fdfaf2'); r.setAttribute('stroke', '#0a0a0a'); r.setAttribute('stroke-width', '3');
+  svg.appendChild(r);
+  positions[value].forEach(([cx, cy]) => {
+    const c = document.createElementNS(ns, 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', '8'); c.setAttribute('fill', '#0a0a0a');
+    svg.appendChild(c);
+  });
+  return svg;
 }
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(<MemoryGame />);
+function buildChallengeDisplay(ch) {
+  const container = el('div', { class: 'grid-display', style: { gridTemplateColumns: ch.cols ? `repeat(${ch.cols}, minmax(0, 1fr))` : 'auto' } });
+  if (ch.type === 'pentagons') {
+    ch.grid.flat().forEach((color, i) => {
+      const cell = el('div', { class: 'cell-empty pop', style: { animationDelay: (i * 30) + 'ms' } });
+      cell.appendChild(renderPentagon(color));
+      container.appendChild(cell);
+    });
+  } else if (ch.type === 'vases') {
+    ch.grid.flat().forEach((v, i) => {
+      const cell = el('div', { class: 'vase-cell pop', style: { animationDelay: (i * 30) + 'ms', width: '60px', height: '60px' } });
+      cell.appendChild(renderVase(v.color, v.direction));
+      container.appendChild(cell);
+    });
+  } else if (ch.type === 'sequence') {
+    container.className = 'seq-row';
+    ch.sequence.forEach((c, i) => {
+      const isNum = /[0-9]/.test(c);
+      container.appendChild(el('div', { class: 'symbol-cell pop ' + (isNum ? 'is-number' : 'is-letter'), style: { animationDelay: (i * 50) + 'ms' } }, c));
+    });
+  } else if (ch.type === 'arrows') {
+    ch.grid.flat().forEach((d, i) => {
+      container.appendChild(el('div', { class: 'symbol-cell is-arrow pop', style: { animationDelay: (i * 30) + 'ms' } }, d));
+    });
+  } else if (ch.type === 'emojis') {
+    ch.grid.flat().forEach((e, i) => {
+      container.appendChild(el('div', { class: 'symbol-cell pop', style: { animationDelay: (i * 30) + 'ms', fontSize: '1.75rem' } }, e));
+    });
+  } else if (ch.type === 'dots') {
+    ch.grid.flat().forEach((v, i) => {
+      const cell = el('div', { class: 'cell-empty pop', style: { animationDelay: (i * 30) + 'ms' } });
+      cell.appendChild(renderDie(v));
+      container.appendChild(cell);
+    });
+  } else if (ch.type === 'positions') {
+    ch.grid.flat().forEach((s, i) => {
+      container.appendChild(el('div', { class: 'symbol-cell pop', style: { animationDelay: (i * 30) + 'ms', fontSize: '1.75rem', color: '#0c0a09' } }, s));
+    });
+  } else if (ch.type === 'words') {
+    container.className = 'seq-row';
+    container.style.flexDirection = 'column';
+    container.style.gap = '0.4rem';
+    ch.words.forEach((w, i) => {
+      container.appendChild(el('div', {
+        class: 'pop',
+        style: { animationDelay: (i * 80) + 'ms', background: 'var(--fg)', color: 'var(--bg)', padding: '0.5rem 1.2rem', fontFamily: 'JetBrains Mono', fontWeight: 800, fontSize: '1.2rem', letterSpacing: '0.1em', border: '3px solid #0c0a09' }
+      }, w));
+    });
+  }
+  return container;
+}
+
+const STORAGE_KEY = 'memoram_stats_v1';
+const loadStats = () => {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { gamesPlayed: 0, totalCorrect: 0, totalAnswered: 0, byType: {}, examsCompleted: 0, bestExamScore: 0 }; }
+  catch { return { gamesPlayed: 0, totalCorrect: 0, totalAnswered: 0, byType: {}, examsCompleted: 0, bestExamScore: 0 }; }
+};
+const saveStats = (s) => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch {} };
+const updateStat = (type, correct) => {
+  const s = loadStats();
+  s.totalAnswered++; if (correct) s.totalCorrect++;
+  if (!s.byType[type]) s.byType[type] = { answered: 0, correct: 0 };
+  s.byType[type].answered++; if (correct) s.byType[type].correct++;
+  saveStats(s);
+};
+
+const state = {
+  phase: 'menu',
+  mode: 'practice',
+  difficulty: 'medio',
+  memorizeTime: 7,
+  examLength: 15,
+  challenge: null,
+  timeLeft: 0,
+  score: 0,
+  round: 0,
+  streak: 0,
+  lives: 3,
+  lastCorrect: null,
+  examResults: [],
+  timerId: null,
+};
+
+const TIME_PRESETS = [
+  { label: 'Rápido', sec: 4 },
+  { label: 'Estándar', sec: 7 },
+  { label: 'Examen', sec: 10 },
+  { label: 'Largo', sec: 15 },
+];
+
+function newChallenge() {
+  clearTimeout(state.timerId);
+  const type = pick(CHALLENGES);
+  state.challenge = type.gen(state.difficulty);
+  state.timeLeft = state.memorizeTime;
+  state.phase = 'memorize';
+  render();
+  tickMemorize();
+}
+
+function tickMemorize() {
+  if (state.phase !== 'memorize') return;
+  if (state.timeLeft <= 0) {
+    state.phase = 'question';
+    render();
+    return;
+  }
+  state.timerId = setTimeout(() => {
+    state.timeLeft--;
+    updateTimerOnly();
+    tickMemorize();
+  }, 1000);
+}
+
+// Actualiza solo el contador y la barra de progreso sin redibujar las imágenes
+function updateTimerOnly() {
+  if (state.phase !== 'memorize') return;
+  const timerEl = document.getElementById('memorize-timer');
+  const progressEl = document.getElementById('memorize-progress');
+  if (timerEl) {
+    timerEl.textContent = state.timeLeft;
+    if (state.timeLeft <= 2) timerEl.classList.add('text-danger', 'pulse-strong');
+    else timerEl.classList.remove('text-danger', 'pulse-strong');
+  }
+  if (progressEl) {
+    progressEl.style.width = ((state.timeLeft / state.memorizeTime) * 100) + '%';
+    if (state.timeLeft <= 2) progressEl.classList.add('urgent');
+    else progressEl.classList.remove('urgent');
+  }
+}
+
+function handleAnswer(opt) {
+  if (state.phase !== 'question') return;
+  const correct = opt === state.challenge.answer;
+  state.lastCorrect = correct;
+  state.round++;
+  updateStat(state.challenge.type, correct);
+
+  if (state.mode === 'practice') {
+    if (correct) {
+      const bonus = state.streak * 5;
+      const diffBonus = state.difficulty === 'dificil' ? 10 : state.difficulty === 'medio' ? 5 : 0;
+      state.score += 10 + bonus + diffBonus;
+      state.streak++;
+    } else {
+      state.streak = 0;
+      state.lives--;
+    }
+    state.phase = 'result';
+    render();
+    if (!correct && state.lives <= 0) {
+      setTimeout(() => { state.phase = 'gameover'; persistGameEnd(); render(); }, 1500);
+    }
+  } else {
+    state.examResults.push({ correct, type: state.challenge.type, question: state.challenge.question, answer: state.challenge.answer, given: opt });
+    if (correct) state.score += 10;
+    state.phase = 'result';
+    render();
+    setTimeout(() => {
+      if (state.examResults.length >= state.examLength) {
+        state.phase = 'exam_result';
+        persistExamEnd();
+        render();
+      } else {
+        newChallenge();
+      }
+    }, 1200);
+  }
+}
+
+function persistGameEnd() {
+  const s = loadStats();
+  s.gamesPlayed++;
+  saveStats(s);
+}
+
+function persistExamEnd() {
+  const s = loadStats();
+  s.examsCompleted++;
+  const correct = state.examResults.filter(r => r.correct).length;
+  const pct = Math.round((correct / state.examResults.length) * 100);
+  if (pct > s.bestExamScore) s.bestExamScore = pct;
+  saveStats(s);
+}
+
+function startGame() {
+  state.score = 0; state.round = 0; state.streak = 0; state.lives = 3; state.examResults = [];
+  newChallenge();
+}
+
+function backToMenu() {
+  clearTimeout(state.timerId);
+  state.phase = 'menu';
+  render();
+}
+
+function renderMenu() {
+  const app = $('#app');
+  app.innerHTML = '';
+  const wrap = el('div', { class: 'center-screen' });
+  wrap.appendChild(el('div', { class: 'deco-square', style: { top: '40px', left: '40px', width: '120px', height: '120px', border: '4px solid var(--danger)', transform: 'rotate(-12deg)' } }));
+  wrap.appendChild(el('div', { class: 'deco-square', style: { bottom: '40px', right: '40px', width: '90px', height: '90px', background: 'var(--accent)', transform: 'rotate(12deg)', opacity: '0.15' } }));
+
+  const card = el('div', { class: 'card card-lg', style: { maxWidth: '640px', width: '100%' } });
+  card.appendChild(el('div', { class: 'subtitle' }, 'NEURAL_TRAINING / TROPA_Y_MARINERIA'));
+  const h1 = el('h1', { class: 'display' });
+  h1.innerHTML = 'MEMO<span style="color: var(--danger);">.</span>RAM';
+  card.appendChild(h1);
+  card.appendChild(el('div', { class: 'divider' }));
+  card.appendChild(el('p', { class: 'text-muted', style: { marginBottom: '1.5rem' } }, 'Entrenamiento de memoria visual para psicotécnicos militares. Memoriza el patrón. Responde la pregunta. Mejora tu velocidad y precisión.'));
+
+  card.appendChild(el('div', { class: 'label-accent' }, '[ MODO ]'));
+  const modeGrid = el('div', { class: 'mode-grid' });
+  const modes = [
+    { id: 'practice', title: 'PRÁCTICA', desc: '3 vidas, puntos por racha. Hasta perder.' },
+    { id: 'exam', title: 'EXAMEN', desc: '15 preguntas seguidas. Nota final sobre 100.' },
+  ];
+  modes.forEach(m => {
+    modeGrid.appendChild(el('button', {
+      class: 'mode-card' + (state.mode === m.id ? ' active' : ''),
+      onclick: () => { state.mode = m.id; render(); }
+    },
+      el('div', { class: 'mode-title' }, m.title),
+      el('div', { class: 'mode-desc' }, m.desc)
+    ));
+  });
+  card.appendChild(modeGrid);
+
+  card.appendChild(el('div', { class: 'label-accent' }, '[ DIFICULTAD ]'));
+  const diffGrid = el('div', { class: 'select-grid select-3' });
+  ['facil', 'medio', 'dificil'].forEach(d => {
+    diffGrid.appendChild(el('button', {
+      class: 'select-btn' + (state.difficulty === d ? ' active' : ''),
+      onclick: () => { state.difficulty = d; render(); }
+    }, d));
+  });
+  card.appendChild(diffGrid);
+
+  card.appendChild(el('div', { class: 'label-accent', style: { marginTop: '1rem' } }, '[ TIEMPO DE MEMORIZACIÓN ]'));
+  const timeGrid = el('div', { class: 'select-grid', style: { gridTemplateColumns: 'repeat(4, 1fr)' } });
+  TIME_PRESETS.forEach(t => {
+    timeGrid.appendChild(el('button', {
+      class: 'select-btn' + (state.memorizeTime === t.sec ? ' active' : ''),
+      onclick: () => { state.memorizeTime = t.sec; render(); }
+    }, t.label + ' ' + t.sec + 's'));
+  });
+  card.appendChild(timeGrid);
+
+  card.appendChild(el('div', { class: 'label-accent', style: { marginTop: '1.2rem' } }, '[ 8 TIPOS DE RETO ]'));
+  const typesGrid = el('div', { class: 'types-grid' });
+  CHALLENGES.forEach(t => {
+    typesGrid.appendChild(el('div', { class: 'type-icon' },
+      el('div', { class: 'icon' }, t.icon),
+      el('div', { class: 'name' }, t.name)
+    ));
+  });
+  card.appendChild(typesGrid);
+
+  card.appendChild(el('button', { class: 'btn btn-primary', style: { marginTop: '2rem' }, onclick: startGame }, '> INICIAR ' + (state.mode === 'exam' ? 'EXAMEN' : 'PRACTICA')));
+  card.appendChild(el('button', { class: 'btn btn-secondary btn-small', style: { marginTop: '0.5rem' }, onclick: () => { state.phase = 'stats'; render(); } }, 'VER ESTADISTICAS'));
+
+  wrap.appendChild(card);
+  app.appendChild(wrap);
+}
+
+function renderStats() {
+  const app = $('#app');
+  app.innerHTML = '';
+  const wrap = el('div', { class: 'center-screen' });
+  const card = el('div', { class: 'card card-lg', style: { maxWidth: '640px', width: '100%' } });
+  const s = loadStats();
+  const acc = s.totalAnswered ? Math.round((s.totalCorrect / s.totalAnswered) * 100) : 0;
+
+  card.appendChild(el('div', { class: 'subtitle' }, '/ PROGRESO_GUARDADO'));
+  card.appendChild(el('h1', { class: 'display', style: { fontSize: '2.5rem' } }, 'STATS'));
+  card.appendChild(el('div', { class: 'divider' }));
+
+  const globalGrid = el('div', { class: 'stats-grid' });
+  [
+    ['PARTIDAS', s.gamesPlayed],
+    ['EXÁMENES', s.examsCompleted],
+    ['PRECISIÓN', acc + '%'],
+    ['MEJOR EXAMEN', s.bestExamScore + '%'],
+  ].forEach(([l, v]) => {
+    globalGrid.appendChild(el('div', { class: 'stat-box' },
+      el('div', { class: 'stat-box-label' }, l),
+      el('div', { class: 'stat-box-value' }, v)
+    ));
+  });
+  card.appendChild(globalGrid);
+
+  card.appendChild(el('div', { class: 'label-accent', style: { marginTop: '1.5rem' } }, '[ POR TIPO DE RETO ]'));
+  if (s.totalAnswered === 0) {
+    card.appendChild(el('p', { class: 'text-muted' }, 'Aún no hay datos. Juega una partida para empezar a registrar tu progreso.'));
+  } else {
+    CHALLENGES.forEach(t => {
+      const data = s.byType[t.id] || { answered: 0, correct: 0 };
+      if (data.answered === 0) return;
+      const pct = Math.round((data.correct / data.answered) * 100);
+      const row = el('div', { style: { display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.6rem', fontSize: '0.85rem' } },
+        el('div', { style: { fontSize: '1.2rem', width: '2rem' } }, t.icon),
+        el('div', { style: { width: '5.5rem', color: '#a8a29e' } }, t.name),
+        el('div', { style: { flex: 1, height: '0.5rem', background: '#44403c' } },
+          el('div', { style: { height: '100%', width: pct + '%', background: pct >= 70 ? 'var(--success)' : pct >= 40 ? 'var(--accent)' : 'var(--danger)' } })
+        ),
+        el('div', { style: { fontFamily: 'Bungee', minWidth: '3rem', textAlign: 'right' } }, pct + '%'),
+        el('div', { style: { fontSize: '0.7rem', color: '#a8a29e', minWidth: '3rem', textAlign: 'right' } }, data.correct + '/' + data.answered)
+      );
+      card.appendChild(row);
+    });
+  }
+
+  const row = el('div', { class: 'row', style: { marginTop: '2rem' } });
+  row.appendChild(el('button', { class: 'btn btn-primary', onclick: backToMenu }, '< VOLVER'));
+  row.appendChild(el('button', { class: 'btn btn-secondary', onclick: () => {
+    if (confirm('¿Borrar todas las estadísticas? Esta acción no se puede deshacer.')) {
+      localStorage.removeItem(STORAGE_KEY);
+      render();
+    }
+  } }, 'BORRAR'));
+  card.appendChild(row);
+
+  wrap.appendChild(card);
+  app.appendChild(wrap);
+}
+
+function renderHud() {
+  const hud = el('div', { class: 'hud' });
+  const stats = el('div', { class: 'hud-stats' });
+
+  if (state.mode === 'practice') {
+    stats.appendChild(el('div', { class: 'hud-stat' },
+      el('div', { class: 'hud-stat-label' }, 'SCORE'),
+      el('div', { class: 'hud-stat-value text-warn' }, state.score)
+    ));
+    stats.appendChild(el('div', { class: 'hud-stat' },
+      el('div', { class: 'hud-stat-label' }, 'RONDA'),
+      el('div', { class: 'hud-stat-value' }, state.round + 1)
+    ));
+    stats.appendChild(el('div', { class: 'hud-stat' },
+      el('div', { class: 'hud-stat-label' }, 'RACHA'),
+      el('div', { class: 'hud-stat-value text-danger' }, '×' + state.streak)
+    ));
+    const lives = el('div', { class: 'lives' });
+    for (let i = 0; i < 3; i++) lives.appendChild(el('div', { class: 'life' + (i < state.lives ? ' active' : '') }));
+    hud.appendChild(stats); hud.appendChild(lives);
+  } else {
+    const currentN = state.examResults.length + (state.phase === 'memorize' || state.phase === 'question' ? 1 : 0);
+    stats.appendChild(el('div', { class: 'hud-stat' },
+      el('div', { class: 'hud-stat-label' }, 'PREGUNTA'),
+      el('div', { class: 'hud-stat-value' }, Math.min(currentN, state.examLength) + '/' + state.examLength)
+    ));
+    stats.appendChild(el('div', { class: 'hud-stat' },
+      el('div', { class: 'hud-stat-label' }, 'ACIERTOS'),
+      el('div', { class: 'hud-stat-value text-success' }, state.examResults.filter(r => r.correct).length)
+    ));
+    hud.appendChild(stats);
+
+    const pips = el('div', { style: { display: 'flex', gap: '3px', flexWrap: 'wrap', maxWidth: '50%' } });
+    for (let i = 0; i < state.examLength; i++) {
+      const r = state.examResults[i];
+      pips.appendChild(el('div', { class: 'exam-pip' + (r ? (r.correct ? ' correct' : ' wrong') : '') }));
+    }
+    hud.appendChild(pips);
+  }
+  return hud;
+}
+
+function renderGame() {
+  const app = $('#app');
+  app.innerHTML = '';
+  const container = el('div', { class: 'container' });
+  container.appendChild(renderHud());
+
+  if (state.phase === 'memorize') {
+    const card = el('div', { class: 'card' });
+    const head = el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' } });
+    head.appendChild(el('div', { class: 'subtitle' }, '[ MEMORIZA ]'));
+    const timer = el('div', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem' } },
+      el('div', { id: 'memorize-timer', class: 'display' + (state.timeLeft <= 2 ? ' text-danger pulse-strong' : ''), style: { fontSize: '2rem' } }, state.timeLeft),
+      el('div', { class: 'text-muted', style: { fontSize: '0.75rem' } }, 'seg')
+    );
+    head.appendChild(timer);
+    card.appendChild(head);
+    const area = el('div', { class: 'challenge-area' });
+    area.appendChild(buildChallengeDisplay(state.challenge));
+    card.appendChild(area);
+    const prog = el('div', { class: 'progress' });
+    prog.appendChild(el('div', { id: 'memorize-progress', class: 'progress-bar' + (state.timeLeft <= 2 ? ' urgent' : ''), style: { width: ((state.timeLeft / state.memorizeTime) * 100) + '%' } }));
+    card.appendChild(prog);
+    container.appendChild(card);
+  } else if (state.phase === 'question') {
+    const card = el('div', { class: 'card fade-in' });
+    card.appendChild(el('div', { class: 'subtitle' }, '[ PREGUNTA ]'));
+    card.appendChild(el('h2', {}, state.challenge.question));
+    const opts = el('div', { class: 'options-grid' });
+    state.challenge.options.forEach(o => {
+      const display = typeof o === 'string' && o.length > 1 ? o.toUpperCase() : o;
+      opts.appendChild(el('button', { class: 'option-btn', onclick: () => handleAnswer(o) }, display));
+    });
+    card.appendChild(opts);
+    container.appendChild(card);
+  } else if (state.phase === 'result') {
+    const card = el('div', { class: 'card fade-in ' + (state.lastCorrect ? 'success-glow' : 'shake danger-glow') });
+    card.appendChild(el('div', { class: 'subtitle', style: { color: state.lastCorrect ? 'var(--success)' : 'var(--danger)' } }, '[ ' + (state.lastCorrect ? 'CORRECTO' : 'INCORRECTO') + ' ]'));
+    card.appendChild(el('div', { class: 'big-result' }, state.lastCorrect ? '✓ ¡BIEN!' : '✗ FALLO'));
+    if (!state.lastCorrect) {
+      card.appendChild(el('div', { class: 'text-muted', style: { marginBottom: '1rem' } },
+        'La respuesta correcta era: ',
+        el('span', { class: 'text-warn', style: { fontWeight: 800 } }, String(state.challenge.answer).toUpperCase())
+      ));
+    }
+    if (state.lastCorrect && state.streak > 1 && state.mode === 'practice') {
+      card.appendChild(el('div', { class: 'text-warn', style: { marginBottom: '1rem' } }, '¡Racha ×' + state.streak + '! Bonus +' + ((state.streak - 1) * 5)));
+    }
+    if (state.mode === 'practice') {
+      const row = el('div', { class: 'row' });
+      row.appendChild(el('button', { class: 'btn btn-primary', onclick: newChallenge }, '> SIGUIENTE'));
+      row.appendChild(el('button', { class: 'btn btn-secondary btn-small', onclick: backToMenu }, '< MENU'));
+      card.appendChild(row);
+    } else {
+      card.appendChild(el('div', { class: 'text-muted', style: { fontSize: '0.8rem', textAlign: 'center', marginTop: '0.5rem' } }, 'Siguiente pregunta automática...'));
+    }
+    container.appendChild(card);
+  }
+
+  $('#app').appendChild(container);
+}
+
+function renderGameOver() {
+  const app = $('#app');
+  app.innerHTML = '';
+  const wrap = el('div', { class: 'center-screen' });
+  const card = el('div', { class: 'card card-lg', style: { maxWidth: '420px', textAlign: 'center', borderColor: 'var(--danger)', boxShadow: '12px 12px 0 0 var(--accent)' } });
+  card.appendChild(el('div', { class: 'subtitle' }, 'SYSTEM_HALT'));
+  const h = el('h1', { class: 'display', style: { fontSize: '3.5rem' } });
+  h.innerHTML = 'GAME<br>OVER';
+  card.appendChild(h);
+  card.appendChild(el('div', { class: 'divider', style: { margin: '1rem auto', background: 'var(--danger)' } }));
+  card.appendChild(el('div', { class: 'text-muted', style: { fontSize: '0.8rem' } }, 'PUNTUACIÓN FINAL'));
+  card.appendChild(el('div', { class: 'grade' }, state.score));
+  card.appendChild(el('div', { class: 'text-muted', style: { fontSize: '0.8rem', marginBottom: '1.5rem' } }, state.round + ' rondas completadas'));
+  const row = el('div', { class: 'row' });
+  row.appendChild(el('button', { class: 'btn btn-primary', onclick: startGame }, '> REINTENTAR'));
+  row.appendChild(el('button', { class: 'btn btn-secondary', onclick: backToMenu }, '< MENU'));
+  card.appendChild(row);
+  wrap.appendChild(card);
+  app.appendChild(wrap);
+}
+
+function renderExamResult() {
+  const app = $('#app');
+  app.innerHTML = '';
+  const wrap = el('div', { class: 'center-screen' });
+  const correct = state.examResults.filter(r => r.correct).length;
+  const total = state.examResults.length;
+  const pct = Math.round((correct / total) * 100);
+  let label, color;
+  if (pct >= 80) { label = 'EXCELENTE'; color = 'var(--success)'; }
+  else if (pct >= 60) { label = 'APTO'; color = 'var(--accent)'; }
+  else if (pct >= 40) { label = 'INSUFICIENTE'; color = 'var(--accent)'; }
+  else { label = 'A ENTRENAR'; color = 'var(--danger)'; }
+
+  const card = el('div', { class: 'card card-lg', style: { maxWidth: '520px', textAlign: 'center' } });
+  card.appendChild(el('div', { class: 'subtitle' }, 'EXAMEN_COMPLETADO'));
+  card.appendChild(el('h1', { class: 'display', style: { fontSize: '3rem' } }, 'RESULTADO'));
+  card.appendChild(el('div', { class: 'divider', style: { margin: '1rem auto' } }));
+  card.appendChild(el('div', { class: 'text-muted', style: { fontSize: '0.8rem' } }, 'NOTA'));
+  card.appendChild(el('div', { class: 'grade' }, pct + '%'));
+  card.appendChild(el('div', { class: 'display', style: { fontSize: '1.25rem', color, marginBottom: '0.5rem' } }, label));
+  card.appendChild(el('div', { class: 'text-muted', style: { fontSize: '0.85rem' } }, correct + ' aciertos de ' + total + ' preguntas'));
+
+  const byType = {};
+  state.examResults.forEach(r => {
+    if (!byType[r.type]) byType[r.type] = { c: 0, t: 0 };
+    byType[r.type].t++; if (r.correct) byType[r.type].c++;
+  });
+  const breakdown = el('div', { style: { marginTop: '1.5rem', textAlign: 'left' } });
+  breakdown.appendChild(el('div', { class: 'label-accent' }, '[ POR TIPO ]'));
+  Object.entries(byType).forEach(([type, d]) => {
+    const ch = CHALLENGES.find(c => c.id === type);
+    breakdown.appendChild(el('div', { style: { display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', marginBottom: '0.4rem' } },
+      el('span', { style: { fontSize: '1.1rem' } }, ch ? ch.icon : '?'),
+      el('span', { style: { width: '6rem', color: '#a8a29e' } }, ch ? ch.name : type),
+      el('span', { class: 'display', style: { color: 'var(--accent)' } }, d.c + '/' + d.t)
+    ));
+  });
+  card.appendChild(breakdown);
+
+  const row = el('div', { class: 'row', style: { marginTop: '2rem' } });
+  row.appendChild(el('button', { class: 'btn btn-primary', onclick: startGame }, '> OTRO EXAMEN'));
+  row.appendChild(el('button', { class: 'btn btn-secondary', onclick: backToMenu }, '< MENU'));
+  card.appendChild(row);
+  wrap.appendChild(card);
+  app.appendChild(wrap);
+}
+
+function render() {
+  if (state.phase === 'menu') return renderMenu();
+  if (state.phase === 'stats') return renderStats();
+  if (state.phase === 'gameover') return renderGameOver();
+  if (state.phase === 'exam_result') return renderExamResult();
+  return renderGame();
+}
+
+render();
 </script>
 </body>
 </html>
