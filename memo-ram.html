@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MEMO.RAM — Entrenamiento de memoria visual</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #1c1917; }
+  @keyframes pop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+  .animate-pop { animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; }
+  @keyframes pulse-strong { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+  .pulse-strong { animation: pulse-strong 1s ease-in-out infinite; }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+  .shake { animation: shake 0.4s; }
+  .scanlines::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px); pointer-events: none; z-index: 1; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+const COLORS = {
+  rojo: '#e63946', azul: '#1d4ed8', verde: '#16a34a', amarillo: '#facc15',
+  morado: '#9333ea', naranja: '#f97316', rosa: '#ec4899', cyan: '#06b6d4',
+};
+const COLOR_NAMES = Object.keys(COLORS);
+const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
+const generatePentagonChallenge = (difficulty) => {
+  const rows = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
+  const cols = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
+  const palette = COLOR_NAMES.slice(0, difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5);
+  const grid = [];
+  for (let r = 0; r < rows; r++) {
+    const row = [];
+    for (let c = 0; c < cols; c++) row.push(pick(palette));
+    grid.push(row);
+  }
+  const questionType = pick(['total_color', 'row_color', 'col_color', 'corner']);
+  let question, answer, options;
+  if (questionType === 'total_color') {
+    const targetColor = pick(palette);
+    const count = grid.flat().filter(c => c === targetColor).length;
+    question = `¿Cuántos pentágonos ${targetColor.toUpperCase()}S había en total?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  } else if (questionType === 'row_color') {
+    const targetRow = randInt(0, rows - 1);
+    const targetColor = pick(palette);
+    const count = grid[targetRow].filter(c => c === targetColor).length;
+    const rowName = targetRow === 0 ? 'PRIMERA (arriba)' : targetRow === rows - 1 ? 'ÚLTIMA (abajo)' : `${targetRow + 1}ª`;
+    question = `¿Cuántos pentágonos ${targetColor.toUpperCase()}S había en la fila ${rowName}?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), Math.min(cols, count + 1), Math.min(cols, count + 2)]);
+  } else if (questionType === 'col_color') {
+    const targetCol = randInt(0, cols - 1);
+    const targetColor = pick(palette);
+    const count = grid.map(row => row[targetCol]).filter(c => c === targetColor).length;
+    const colName = targetCol === 0 ? 'PRIMERA (izquierda)' : targetCol === cols - 1 ? 'ÚLTIMA (derecha)' : `${targetCol + 1}ª`;
+    question = `¿Cuántos pentágonos ${targetColor.toUpperCase()}S había en la columna ${colName}?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), Math.min(rows, count + 1), Math.min(rows, count + 2)]);
+  } else {
+    const corners = {
+      'arriba-izquierda': grid[0][0], 'arriba-derecha': grid[0][cols - 1],
+      'abajo-izquierda': grid[rows - 1][0], 'abajo-derecha': grid[rows - 1][cols - 1],
+    };
+    const corner = pick(Object.keys(corners));
+    question = `¿De qué color era el pentágono de la esquina ${corner.toUpperCase()}?`;
+    answer = corners[corner];
+    options = shuffle([corners[corner], ...shuffle(palette.filter(c => c !== corners[corner])).slice(0, 3)]);
+  }
+  options = [...new Set(options)];
+  while (options.length < 4) options.push(typeof options[0] === 'number' ? options[options.length - 1] + 1 : pick(palette));
+  return { type: 'pentagons', grid, rows, cols, question, answer, options: options.slice(0, 4) };
+};
+
+const generateVaseChallenge = (difficulty) => {
+  const rows = difficulty === 'facil' ? 2 : difficulty === 'medio' ? 3 : 4;
+  const cols = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 4;
+  const grid = [];
+  for (let r = 0; r < rows; r++) {
+    const row = [];
+    for (let c = 0; c < cols; c++) row.push({ color: pick(['blanco', 'negro']), direction: pick(['izquierda', 'derecha', 'arriba', 'invertido']) });
+    grid.push(row);
+  }
+  const questionType = pick(['count_color', 'count_direction', 'count_combo']);
+  let question, answer, options;
+  if (questionType === 'count_color') {
+    const targetColor = pick(['blanco', 'negro']);
+    const count = grid.flat().filter(v => v.color === targetColor).length;
+    question = `¿Cuántos jarrones ${targetColor.toUpperCase()}S había?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  } else if (questionType === 'count_direction') {
+    const targetDir = pick(['izquierda', 'derecha', 'arriba', 'invertido']);
+    const count = grid.flat().filter(v => v.direction === targetDir).length;
+    const dirText = targetDir === 'arriba' ? 'mirando hacia ARRIBA' : targetDir === 'invertido' ? 'INVERTIDOS (boca abajo)' : `mirando hacia la ${targetDir.toUpperCase()}`;
+    question = `¿Cuántos jarrones había ${dirText}?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  } else {
+    const targetColor = pick(['blanco', 'negro']);
+    const targetDir = pick(['izquierda', 'derecha']);
+    const count = grid.flat().filter(v => v.color === targetColor && v.direction === targetDir).length;
+    question = `¿Cuántos jarrones ${targetColor.toUpperCase()}S miraban hacia la ${targetDir.toUpperCase()}?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  }
+  options = [...new Set(options)];
+  while (options.length < 4) options.push(options[options.length - 1] + 1);
+  return { type: 'vases', grid, rows, cols, question, answer, options: options.slice(0, 4) };
+};
+
+const generateSequenceChallenge = (difficulty) => {
+  const length = difficulty === 'facil' ? 5 : difficulty === 'medio' ? 7 : 9;
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const sequence = Array.from({ length }, () => chars[randInt(0, chars.length - 1)]);
+  const questionType = pick(['position', 'count_letters', 'count_numbers', 'specific_char']);
+  let question, answer, options;
+  if (questionType === 'position') {
+    const pos = randInt(0, length - 1);
+    const posText = pos === 0 ? 'PRIMERA' : pos === length - 1 ? 'ÚLTIMA' : `${pos + 1}ª`;
+    question = `¿Qué carácter estaba en la posición ${posText}?`;
+    answer = sequence[pos];
+    const others = shuffle(chars.split('').filter(c => c !== answer)).slice(0, 3);
+    options = shuffle([answer, ...others]);
+  } else if (questionType === 'count_letters') {
+    const count = sequence.filter(c => /[A-Z]/.test(c)).length;
+    question = `¿Cuántas LETRAS había en la secuencia?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), Math.min(length, count + 1), Math.min(length, count + 2)]);
+  } else if (questionType === 'count_numbers') {
+    const count = sequence.filter(c => /[0-9]/.test(c)).length;
+    question = `¿Cuántos NÚMEROS había en la secuencia?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), Math.min(length, count + 1), Math.min(length, count + 2)]);
+  } else {
+    const target = pick(sequence);
+    const count = sequence.filter(c => c === target).length;
+    question = `¿Cuántas veces aparecía el carácter "${target}"?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  }
+  options = [...new Set(options)];
+  while (options.length < 4) options.push(typeof options[0] === 'number' ? options[options.length - 1] + 1 : pick(chars.split('')));
+  return { type: 'sequence', sequence, question, answer, options: options.slice(0, 4) };
+};
+
+const generateArrowChallenge = (difficulty) => {
+  const rows = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
+  const cols = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
+  const dirs = ['↑', '↓', '←', '→', '↖', '↗', '↘', '↙'];
+  const palette = dirs.slice(0, difficulty === 'facil' ? 4 : 6);
+  const grid = [];
+  for (let r = 0; r < rows; r++) {
+    const row = [];
+    for (let c = 0; c < cols; c++) row.push(pick(palette));
+    grid.push(row);
+  }
+  const questionType = pick(['count_dir', 'count_vertical', 'count_horizontal']);
+  let question, answer, options;
+  if (questionType === 'count_dir') {
+    const target = pick(palette);
+    const count = grid.flat().filter(d => d === target).length;
+    question = `¿Cuántas flechas ${target} había en total?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  } else if (questionType === 'count_vertical') {
+    const count = grid.flat().filter(d => d === '↑' || d === '↓').length;
+    question = `¿Cuántas flechas VERTICALES (↑ ↓) había?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  } else {
+    const count = grid.flat().filter(d => d === '←' || d === '→').length;
+    question = `¿Cuántas flechas HORIZONTALES (← →) había?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  }
+  options = [...new Set(options)];
+  while (options.length < 4) options.push(options[options.length - 1] + 1);
+  return { type: 'arrows', grid, rows, cols, question, answer, options: options.slice(0, 4) };
+};
+
+const generateEmojiChallenge = (difficulty) => {
+  const rows = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
+  const cols = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5;
+  const emojis = ['🍎', '🍌', '🍇', '🍓', '🍊', '🥝', '🍑', '🥥'];
+  const names = { '🍎': 'manzanas', '🍌': 'plátanos', '🍇': 'uvas', '🍓': 'fresas', '🍊': 'naranjas', '🥝': 'kiwis', '🍑': 'melocotones', '🥥': 'cocos' };
+  const palette = emojis.slice(0, difficulty === 'facil' ? 3 : difficulty === 'medio' ? 4 : 5);
+  const grid = [];
+  for (let r = 0; r < rows; r++) {
+    const row = [];
+    for (let c = 0; c < cols; c++) row.push(pick(palette));
+    grid.push(row);
+  }
+  const questionType = pick(['count_total', 'count_row']);
+  let question, answer, options;
+  if (questionType === 'count_total') {
+    const target = pick(palette);
+    const count = grid.flat().filter(e => e === target).length;
+    question = `¿Cuántas ${names[target].toUpperCase()} (${target}) había en total?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  } else {
+    const targetRow = randInt(0, rows - 1);
+    const target = pick(palette);
+    const count = grid[targetRow].filter(e => e === target).length;
+    const rowName = targetRow === 0 ? 'PRIMERA (arriba)' : targetRow === rows - 1 ? 'ÚLTIMA (abajo)' : `${targetRow + 1}ª`;
+    question = `¿Cuántas ${names[target].toUpperCase()} (${target}) había en la fila ${rowName}?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), Math.min(cols, count + 1), Math.min(cols, count + 2)]);
+  }
+  options = [...new Set(options)];
+  while (options.length < 4) options.push(options[options.length - 1] + 1);
+  return { type: 'emojis', grid, rows, cols, question, answer, options: options.slice(0, 4) };
+};
+
+const generateDotsChallenge = (difficulty) => {
+  const rows = difficulty === 'facil' ? 2 : difficulty === 'medio' ? 3 : 3;
+  const cols = difficulty === 'facil' ? 3 : difficulty === 'medio' ? 3 : 4;
+  const grid = [];
+  for (let r = 0; r < rows; r++) {
+    const row = [];
+    for (let c = 0; c < cols; c++) row.push(randInt(1, 6));
+    grid.push(row);
+  }
+  const questionType = pick(['sum_total', 'sum_row', 'count_value']);
+  let question, answer, options;
+  if (questionType === 'sum_total') {
+    const sum = grid.flat().reduce((a, b) => a + b, 0);
+    question = `¿Cuál era la SUMA TOTAL de todos los puntos?`;
+    answer = sum;
+    options = shuffle([sum, sum - 2, sum + 1, sum + 3]);
+  } else if (questionType === 'sum_row') {
+    const targetRow = randInt(0, rows - 1);
+    const sum = grid[targetRow].reduce((a, b) => a + b, 0);
+    const rowName = targetRow === 0 ? 'PRIMERA' : targetRow === rows - 1 ? 'ÚLTIMA' : `${targetRow + 1}ª`;
+    question = `¿Cuál era la suma de los puntos en la fila ${rowName}?`;
+    answer = sum;
+    options = shuffle([sum, sum - 1, sum + 1, sum + 2]);
+  } else {
+    const target = randInt(1, 6);
+    const count = grid.flat().filter(n => n === target).length;
+    question = `¿Cuántos dados mostraban exactamente ${target} punto${target > 1 ? 's' : ''}?`;
+    answer = count;
+    options = shuffle([count, Math.max(0, count - 1), count + 1, count + 2]);
+  }
+  options = [...new Set(options)];
+  while (options.length < 4) options.push(options[options.length - 1] + 1);
+  return { type: 'dots', grid, rows, cols, question, answer, options: options.slice(0, 4) };
+};
+
+const CHALLENGE_TYPES = [
+  { id: 'pentagons', name: 'Pentágonos', icon: '⬟', gen: generatePentagonChallenge },
+  { id: 'vases', name: 'Jarrones', icon: '⚱', gen: generateVaseChallenge },
+  { id: 'sequence', name: 'Secuencia', icon: '🅰', gen: generateSequenceChallenge },
+  { id: 'arrows', name: 'Flechas', icon: '➤', gen: generateArrowChallenge },
+  { id: 'emojis', name: 'Frutas', icon: '🍎', gen: generateEmojiChallenge },
+  { id: 'dots', name: 'Dados', icon: '⚀', gen: generateDotsChallenge },
+];
+
+const Pentagon = ({ color, size = 56 }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100">
+    <polygon points="50,5 95,38 78,92 22,92 5,38" fill={COLORS[color]} stroke="#0a0a0a" strokeWidth="3" strokeLinejoin="round" />
+  </svg>
+);
+
+const Vase = ({ color, direction, size = 56 }) => {
+  const fill = color === 'blanco' ? '#f5f5f0' : '#1a1a1a';
+  const stroke = color === 'blanco' ? '#1a1a1a' : '#f5f5f0';
+  const rotation = direction === 'arriba' ? 0 : direction === 'invertido' ? 180 : direction === 'izquierda' ? -15 : 15;
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" style={{ transform: `rotate(${rotation}deg)` }}>
+      <path d="M 30 15 L 70 15 L 68 25 L 75 35 Q 85 50 80 70 Q 75 88 50 90 Q 25 88 20 70 Q 15 50 25 35 L 32 25 Z" fill={fill} stroke={stroke} strokeWidth="3" strokeLinejoin="round" />
+      <ellipse cx="50" cy="18" rx="20" ry="3" fill={stroke} opacity="0.4" />
+    </svg>
+  );
+};
+
+const Die = ({ value, size = 56 }) => {
+  const positions = {
+    1: [[50, 50]], 2: [[28, 28], [72, 72]], 3: [[28, 28], [50, 50], [72, 72]],
+    4: [[28, 28], [72, 28], [28, 72], [72, 72]], 5: [[28, 28], [72, 28], [50, 50], [28, 72], [72, 72]],
+    6: [[28, 25], [72, 25], [28, 50], [72, 50], [28, 75], [72, 75]],
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100">
+      <rect x="5" y="5" width="90" height="90" rx="15" fill="#fdfaf2" stroke="#0a0a0a" strokeWidth="3" />
+      {positions[value].map(([cx, cy], i) => <circle key={i} cx={cx} cy={cy} r="8" fill="#0a0a0a" />)}
+    </svg>
+  );
+};
+
+const PHASES = { MENU: 'menu', MEMORIZE: 'memorize', QUESTION: 'question', RESULT: 'result', GAMEOVER: 'gameover' };
+
+function MemoryGame() {
+  const [phase, setPhase] = useState(PHASES.MENU);
+  const [difficulty, setDifficulty] = useState('medio');
+  const [challenge, setChallenge] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [score, setScore] = useState(0);
+  const [round, setRound] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [lives, setLives] = useState(3);
+  const [lastCorrect, setLastCorrect] = useState(null);
+  const timerRef = useRef(null);
+
+  const memorizeTime = difficulty === 'facil' ? 7 : difficulty === 'medio' ? 5 : 4;
+
+  const newChallenge = () => {
+    const type = pick(CHALLENGE_TYPES);
+    const c = type.gen(difficulty);
+    setChallenge(c);
+    setSelectedAnswer(null);
+    setTimeLeft(memorizeTime);
+    setPhase(PHASES.MEMORIZE);
+  };
+
+  useEffect(() => {
+    if (phase !== PHASES.MEMORIZE) return;
+    if (timeLeft <= 0) { setPhase(PHASES.QUESTION); return; }
+    timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    return () => clearTimeout(timerRef.current);
+  }, [phase, timeLeft]);
+
+  const startGame = () => { setScore(0); setRound(0); setStreak(0); setLives(3); newChallenge(); };
+
+  const handleAnswer = (option) => {
+    if (selectedAnswer !== null) return;
+    setSelectedAnswer(option);
+    const correct = option === challenge.answer;
+    setLastCorrect(correct);
+    if (correct) {
+      const bonus = streak * 5;
+      const points = 10 + bonus + (difficulty === 'dificil' ? 10 : difficulty === 'medio' ? 5 : 0);
+      setScore(s => s + points);
+      setStreak(s => s + 1);
+    } else {
+      setStreak(0);
+      setLives(l => l - 1);
+    }
+    setRound(r => r + 1);
+    setTimeout(() => {
+      if (!correct && lives - 1 <= 0) setPhase(PHASES.GAMEOVER);
+      else setPhase(PHASES.RESULT);
+    }, 1500);
+  };
+
+  const renderGrid = () => {
+    if (!challenge) return null;
+    if (challenge.type === 'pentagons') {
+      return (
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${challenge.cols}, minmax(0, 1fr))` }}>
+          {challenge.grid.flat().map((color, i) => (
+            <div key={i} className="flex items-center justify-center animate-pop" style={{ animationDelay: `${i * 30}ms` }}>
+              <Pentagon color={color} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (challenge.type === 'vases') {
+      return (
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${challenge.cols}, minmax(0, 1fr))` }}>
+          {challenge.grid.flat().map((v, i) => (
+            <div key={i} className="flex items-center justify-center animate-pop bg-stone-200 rounded-lg p-1" style={{ animationDelay: `${i * 30}ms` }}>
+              <Vase color={v.color} direction={v.direction} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (challenge.type === 'sequence') {
+      return (
+        <div className="flex gap-2 flex-wrap justify-center">
+          {challenge.sequence.map((ch, i) => (
+            <div key={i} className="w-14 h-14 md:w-16 md:h-16 bg-amber-50 border-4 border-stone-900 flex items-center justify-center font-black text-3xl md:text-4xl animate-pop"
+              style={{ animationDelay: `${i * 50}ms`, fontFamily: 'JetBrains Mono, monospace', color: /[0-9]/.test(ch) ? '#dc2626' : '#0c0a09' }}>
+              {ch}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (challenge.type === 'arrows') {
+      return (
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${challenge.cols}, minmax(0, 1fr))` }}>
+          {challenge.grid.flat().map((d, i) => (
+            <div key={i} className="w-14 h-14 md:w-16 md:h-16 bg-amber-50 border-4 border-stone-900 flex items-center justify-center text-4xl md:text-5xl font-black animate-pop"
+              style={{ animationDelay: `${i * 30}ms`, color: '#dc2626' }}>
+              {d}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (challenge.type === 'emojis') {
+      return (
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${challenge.cols}, minmax(0, 1fr))` }}>
+          {challenge.grid.flat().map((e, i) => (
+            <div key={i} className="w-14 h-14 md:w-16 md:h-16 bg-amber-50 border-4 border-stone-900 flex items-center justify-center text-3xl md:text-4xl animate-pop"
+              style={{ animationDelay: `${i * 30}ms` }}>
+              {e}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    if (challenge.type === 'dots') {
+      return (
+        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${challenge.cols}, minmax(0, 1fr))` }}>
+          {challenge.grid.flat().map((v, i) => (
+            <div key={i} className="flex items-center justify-center animate-pop" style={{ animationDelay: `${i * 30}ms` }}>
+              <Die value={v} />
+            </div>
+          ))}
+        </div>
+      );
+    }
+  };
+
+  if (phase === PHASES.MENU) {
+    return (
+      <div className="min-h-screen bg-stone-900 text-amber-50 flex items-center justify-center p-6 relative overflow-hidden" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+        <div className="absolute inset-0 scanlines" />
+        <div className="absolute top-10 left-10 w-32 h-32 border-4 border-red-500 -rotate-12 opacity-30" />
+        <div className="absolute bottom-10 right-10 w-24 h-24 bg-amber-400 rotate-12 opacity-20" />
+        <div className="absolute top-1/3 right-20 text-amber-50 opacity-10 text-9xl">⬟</div>
+        <div className="relative z-10 max-w-2xl w-full">
+          <div className="border-4 border-amber-50 bg-stone-800 p-8 md:p-12" style={{ boxShadow: '12px 12px 0 0 #dc2626' }}>
+            <div className="text-xs tracking-[0.4em] text-red-400 mb-2">NEURAL_TRAINING_v1.0</div>
+            <h1 className="text-5xl md:text-7xl font-black mb-2 leading-none" style={{ fontFamily: 'Bungee, sans-serif', letterSpacing: '-0.02em' }}>
+              MEMO<span className="text-red-500">.</span>RAM
+            </h1>
+            <div className="h-1 bg-amber-50 w-24 my-4" />
+            <p className="text-stone-300 mb-8 text-sm md:text-base">
+              Memoriza el patrón. Responde la pregunta.<br />
+              Cada acierto: +puntos. Cada fallo: -1 vida.
+            </p>
+            <div className="mb-6">
+              <div className="text-xs tracking-widest text-amber-400 mb-3">[ SELECCIONA DIFICULTAD ]</div>
+              <div className="grid grid-cols-3 gap-2">
+                {['facil', 'medio', 'dificil'].map(d => (
+                  <button key={d} onClick={() => setDifficulty(d)}
+                    className={`py-3 px-2 border-2 font-bold uppercase text-sm tracking-wider transition-all ${
+                      difficulty === d ? 'bg-red-500 border-red-500 text-amber-50' : 'border-stone-500 text-stone-400 hover:border-amber-50 hover:text-amber-50'
+                    }`}
+                    style={difficulty === d ? { boxShadow: '4px 4px 0 0 #facc15' } : {}}>
+                    {d}
+                  </button>
+                ))}
+              </div>
+              <div className="text-xs text-stone-400 mt-2">Tiempo de memorización: {memorizeTime}s</div>
+            </div>
+            <div className="mb-8">
+              <div className="text-xs tracking-widest text-amber-400 mb-3">[ TIPOS DE RETO ]</div>
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                {CHALLENGE_TYPES.map(t => (
+                  <div key={t.id} className="border-2 border-stone-600 p-2 text-center hover:border-amber-50 transition-colors">
+                    <div className="text-2xl">{t.icon}</div>
+                    <div className="text-[10px] text-stone-400 mt-1">{t.name}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button onClick={startGame}
+              className="w-full py-4 bg-amber-400 text-stone-900 font-black text-xl tracking-widest hover:bg-amber-50 transition-all"
+              style={{ fontFamily: 'Bungee, sans-serif', boxShadow: '6px 6px 0 0 #dc2626' }}>
+              ▶ INICIAR
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === PHASES.GAMEOVER) {
+    return (
+      <div className="min-h-screen bg-stone-900 text-amber-50 flex items-center justify-center p-6" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+        <div className="border-4 border-red-500 bg-stone-800 p-8 md:p-12 max-w-md w-full text-center" style={{ boxShadow: '12px 12px 0 0 #facc15' }}>
+          <div className="text-xs tracking-[0.4em] text-red-400 mb-2">SYSTEM_HALT</div>
+          <h1 className="text-5xl md:text-6xl font-black mb-4" style={{ fontFamily: 'Bungee, sans-serif' }}>GAME<br />OVER</h1>
+          <div className="h-1 bg-red-500 w-24 mx-auto my-4" />
+          <div className="text-stone-400 text-sm">PUNTUACIÓN FINAL</div>
+          <div className="text-6xl font-black text-amber-400 my-2" style={{ fontFamily: 'Bungee, sans-serif' }}>{score}</div>
+          <div className="text-stone-400 text-sm mb-6">{round} rondas completadas</div>
+          <button onClick={() => setPhase(PHASES.MENU)}
+            className="w-full py-3 bg-amber-400 text-stone-900 font-black tracking-widest hover:bg-amber-50 transition-colors"
+            style={{ fontFamily: 'Bungee, sans-serif', boxShadow: '4px 4px 0 0 #dc2626' }}>
+            ▶ REINTENTAR
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-stone-900 text-amber-50 p-4 md:p-6 relative overflow-hidden" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+      <div className="absolute inset-0 scanlines" />
+      <div className="max-w-3xl mx-auto relative z-10">
+        <div className="flex justify-between items-center mb-4 border-b-2 border-stone-700 pb-3">
+          <div className="flex gap-4 md:gap-6 text-xs md:text-sm">
+            <div>
+              <div className="text-stone-400 text-[10px] tracking-widest">SCORE</div>
+              <div className="text-amber-400 font-black text-lg md:text-xl" style={{ fontFamily: 'Bungee, sans-serif' }}>{score}</div>
+            </div>
+            <div>
+              <div className="text-stone-400 text-[10px] tracking-widest">RONDA</div>
+              <div className="font-black text-lg md:text-xl" style={{ fontFamily: 'Bungee, sans-serif' }}>{round + 1}</div>
+            </div>
+            <div>
+              <div className="text-stone-400 text-[10px] tracking-widest">RACHA</div>
+              <div className="text-red-500 font-black text-lg md:text-xl" style={{ fontFamily: 'Bungee, sans-serif' }}>×{streak}</div>
+            </div>
+          </div>
+          <div className="flex gap-1">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className={`w-5 h-5 md:w-6 md:h-6 border-2 ${i < lives ? 'bg-red-500 border-red-500' : 'border-stone-600'}`}
+                style={{ clipPath: 'polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%)' }} />
+            ))}
+          </div>
+        </div>
+
+        {phase === PHASES.MEMORIZE && (
+          <div className="border-4 border-amber-50 bg-stone-800 p-4 md:p-8" style={{ boxShadow: '8px 8px 0 0 #dc2626' }}>
+            <div className="flex justify-between items-center mb-6">
+              <div className="text-xs tracking-[0.3em] text-amber-400">[ MEMORIZA ]</div>
+              <div className="flex items-center gap-2">
+                <div className={`text-3xl md:text-4xl font-black ${timeLeft <= 2 ? 'text-red-500 pulse-strong' : 'text-amber-50'}`} style={{ fontFamily: 'Bungee, sans-serif' }}>{timeLeft}</div>
+                <div className="text-stone-400 text-xs">seg</div>
+              </div>
+            </div>
+            <div className="flex justify-center py-6">{renderGrid()}</div>
+            <div className="mt-6 h-2 bg-stone-700">
+              <div className="h-full bg-amber-400 transition-all duration-1000 ease-linear" style={{ width: `${(timeLeft / memorizeTime) * 100}%` }} />
+            </div>
+          </div>
+        )}
+
+        {phase === PHASES.QUESTION && (
+          <div className="border-4 border-amber-50 bg-stone-800 p-4 md:p-8 animate-pop" style={{ boxShadow: '8px 8px 0 0 #dc2626' }}>
+            <div className="text-xs tracking-[0.3em] text-red-400 mb-2">[ PREGUNTA ]</div>
+            <h2 className="text-xl md:text-2xl font-bold mb-6 leading-tight">{challenge.question}</h2>
+            <div className="grid grid-cols-2 gap-3 md:gap-4">
+              {challenge.options.map((opt, i) => (
+                <button key={i} onClick={() => handleAnswer(opt)}
+                  className="py-5 md:py-6 px-4 border-4 border-amber-50 bg-stone-900 hover:bg-amber-400 hover:text-stone-900 font-black text-2xl md:text-3xl transition-all hover:-translate-y-1"
+                  style={{ fontFamily: 'Bungee, sans-serif' }}>
+                  {typeof opt === 'string' && opt.length > 1 ? opt.toUpperCase() : opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {phase === PHASES.RESULT && (
+          <div className={`border-4 ${lastCorrect ? 'border-green-400' : 'border-red-500 shake'} bg-stone-800 p-4 md:p-8 animate-pop`}
+            style={{ boxShadow: `8px 8px 0 0 ${lastCorrect ? '#facc15' : '#dc2626'}` }}>
+            <div className={`text-xs tracking-[0.3em] mb-2 ${lastCorrect ? 'text-green-400' : 'text-red-400'}`}>
+              [ {lastCorrect ? 'CORRECTO' : 'INCORRECTO'} ]
+            </div>
+            <div className="text-4xl md:text-6xl font-black mb-4" style={{ fontFamily: 'Bungee, sans-serif' }}>
+              {lastCorrect ? '✓ ¡BIEN!' : '✗ FALLO'}
+            </div>
+            {!lastCorrect && (
+              <div className="text-stone-300 mb-4">
+                La respuesta correcta era: <span className="text-amber-400 font-bold">{challenge.answer}</span>
+              </div>
+            )}
+            {lastCorrect && streak > 1 && (
+              <div className="text-amber-400 mb-4">¡Racha ×{streak}! Bonus +{(streak - 1) * 5}</div>
+            )}
+            <button onClick={newChallenge}
+              className="w-full py-3 bg-amber-400 text-stone-900 font-black tracking-widest hover:bg-amber-50 transition-colors"
+              style={{ fontFamily: 'Bungee, sans-serif', boxShadow: '4px 4px 0 0 #dc2626' }}>
+              ▶ SIGUIENTE
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<MemoryGame />);
+</script>
+</body>
+</html>
