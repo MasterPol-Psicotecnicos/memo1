@@ -889,7 +889,7 @@ function buildChallengeDisplay(ch) {
   return container;
 }
 
-const STORAGE_KEY = 'memoopo_stats_v1';
+const STORAGE_KEY = 'Opo-Memory_stats_v1';
 const loadStats = () => {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || { gamesPlayed: 0, totalCorrect: 0, totalAnswered: 0, byType: {}, examsCompleted: 0, bestExamScore: 0 }; }
   catch { return { gamesPlayed: 0, totalCorrect: 0, totalAnswered: 0, byType: {}, examsCompleted: 0, bestExamScore: 0 }; }
@@ -1106,7 +1106,7 @@ function renderMenu() {
   const wrap = el('div', { class: 'modal-screen' });
   const card = el('div', { class: 'modal-card' });
 
-  card.appendChild(el('h1', {}, 'MemoOpo'));
+  card.appendChild(el('h1', {}, 'Opo-Memory'));
   card.appendChild(el('div', { class: 'subtitle' }, 'Entrenamiento de memoria visual · Psicotécnicos Tropa y Marinería'));
 
   card.appendChild(el('h2', {}, 'Modo'));
